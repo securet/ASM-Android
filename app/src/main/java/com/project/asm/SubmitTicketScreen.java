@@ -4,11 +4,14 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
-import android.R.array;
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
@@ -17,8 +20,10 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.graphics.Region;
+import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -28,6 +33,9 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.SystemClock;
 import android.provider.MediaStore;
+import android.support.v4.app.NotificationCompat;
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -35,9 +43,11 @@ import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -45,14 +55,16 @@ import android.widget.Toast;
 import com.bugsense.trace.BugSenseHandler;
 import com.data.model.ServiceData;
 import com.data.model.SeverityData;
-import com.data.model.SitesData;
 import com.data.model.SubCategoryData;
 import com.function.imageUpload.Constants;
+import com.project.asm.widget.adapter.SiteSuggestion;
 
 public class SubmitTicketScreen extends Activity implements OnClickListener, LocationListener{
 
-	ImageView backBtn;
-	Spinner sitesSpnr, categorySpnr, subCategorySpnr, severitySpnr;
+    private static final String TAG = SubmitTicketScreen.class.getName();
+    ImageView backBtn;
+	Spinner  categorySpnr, subCategorySpnr, severitySpnr;
+    AutoCompleteTextView sites;
 	String commentMessage = "";
 	ProgressDialog pd;
 	private SharedPreferences myPrefs;
@@ -63,17 +75,16 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 	
 	private String finalSiteID = "";
 	private String finalCategoryID = "";
+    private String finalCategoryName = "";
 	private String finalSubCategoryID = "";
 	private String finalSeverityName = "";
 	//private String finalFileName = "";
 	private String finalLatitude = String.valueOf(OptionScreen.hardFix.getLatitude());
 	private String finalLongtude = String.valueOf(OptionScreen.hardFix.getLongitude());
-	
-	// For site
-	private ArrayList<String> sitesName = new ArrayList<String>();
-	private ArrayList<SitesData> sitedata = new ArrayList<SitesData>();
-	private ArrayAdapter<String> siteAdapter;
-	
+
+    //For Site
+    private SiteSuggestion siteSuggestion;
+
 	// For Category
 	private ArrayList<String> serviceName = new ArrayList<String>();
 	private ArrayList<ServiceData> servicedata = new ArrayList<ServiceData>();
@@ -83,7 +94,13 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 	private ArrayList<String> subCategoryName = new ArrayList<String>();
 	private ArrayList<SubCategoryData> subCategorydata = new ArrayList<SubCategoryData>();
 	private ArrayAdapter<String> subCategoryAdapter;
-	
+
+
+    //Vendor Details
+    private RelativeLayout vendorDetails;
+    private TextView vendorEmail;
+    private TextView vendorMobile;
+
 	// For Severity
 	private ArrayList<String> severityName = new ArrayList<String>();
 	private ArrayList<SeverityData> severitydata = new ArrayList<SeverityData>();
@@ -133,21 +150,37 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 		
 		//resources
 		backBtn  = (ImageView) findViewById(R.id.backBtn);
-		sitesSpnr = (Spinner) findViewById(R.id.sitesSpnr);
+        sites = (AutoCompleteTextView) findViewById(R.id.sites);
 		commentET = (EditText) findViewById(R.id.commentET);
 		categorySpnr = (Spinner) findViewById(R.id.categorySpinner);
 		subCategorySpnr = (Spinner) findViewById(R.id.subCategorySpnr);
+
+        vendorDetails = (RelativeLayout)findViewById(R.id.vendorDetails);
+        vendorEmail = (TextView) findViewById(R.id.vendorEmail);
+        vendorMobile = (TextView) findViewById(R.id.vendorMobile);
+
 		severitySpnr = (Spinner) findViewById(R.id.severitySpnr);
 		submitBtn = (Button) findViewById(R.id.submitBtn);
 		selectPhoto = (EditText)findViewById(R.id.fileUploadET);
 		employeeName = (TextView)findViewById(R.id.employeeName);
-				
-		// lictener
+       this.backBtn.getRootView();
+		// listeners
 		backBtn.setOnClickListener(this);
 		submitBtn.setOnClickListener(this);
 		selectPhoto.setOnClickListener(this);
-		
-		// on Touch Listenre
+
+
+        //assign the auto suggest adapter
+        siteSuggestion = new SiteSuggestion(this, R.layout.list_item);
+        siteSuggestion.setUserName(myPrefs.getString("UserName", ""));
+        siteSuggestion.setPassword(myPrefs.getString("Password", ""));
+        sites.setAdapter(siteSuggestion);
+
+        //also bind site events
+        sites.setOnClickListener(siteSuggestion);
+        sites.setOnItemClickListener(siteSuggestion);
+
+		// on Touch Listener
 		//sitesSpnr.setOnTouchListener(sitesSpinnerOnTouch);
 		categorySpnr.setOnTouchListener(categorySpinnerOnTouch);
 		subCategorySpnr.setOnTouchListener(subCategorySpinnerOnTouch);
@@ -163,10 +196,6 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 		
 		employeeName.setText("Logged in as "+myPrefs.getString("EmployeeName", "Chikhalkar"));
 		
-		// setting adapter for Sites
-		siteAdapter = new ArrayAdapter<String>(SubmitTicketScreen.this, android.R.layout.simple_spinner_item,  sitesName);
-		siteAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-		
 		// setting adapter for category
 		serviceAdapter = new ArrayAdapter<String>(SubmitTicketScreen.this, android.R.layout.simple_spinner_item,  serviceName);
 		serviceAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -179,12 +208,12 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 		severityAdapter = new ArrayAdapter<String>(SubmitTicketScreen.this, android.R.layout.simple_spinner_item,  severityName);
 		severityAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		
-		SitesTask task = new SitesTask();
-   		task.execute(new String[]{myPrefs.getString("UserName", ""),myPrefs.getString("Password", "")});
-		
-   		
+		//SitesTask task = new SitesTask();
+   		//task.execute(new String[]{myPrefs.getString("UserName", ""),myPrefs.getString("Password", "")});
    		findLocation();
-   		
+
+        //check for any updates from server
+        AppUpdateNotifier.initAppUpdateNotifier(this);
 	}
 	
 	
@@ -261,92 +290,9 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 		}   
 		return new File(path, "image.jpg");
 		
-		
-		
-		/*
-		if(!path.exists()){     
-			path.mkdir();   
-		}*/
-		
-		/*final File path = new File( Environment.getExternalStorageDirectory(), context.getPackageName());
-		
-		if(!path.exists()){     
-			path.mkdir();   
-		}
-		
-		// android code
-		 // Create an image file name
-		String mCurrentPhotoPath;*/
-		
-		//original = new File(path, "image.jpg");
-		//original = new File(path, "image.tmp");
-		
-		
-		/*if(!path.exists()){     
-			path.mkdir();   
-		}*/   
-		//return  original;
-		
-		
-	    
-	   /* String imageFileName = "JPEG_" + timeStamp + "_";
-	    File storageDir = Environment.getExternalStoragePublicDirectory( Environment.DIRECTORY_PICTURES);
-	    File image = null;
-	    try{
-	    	image = File.createTempFile(
-	    	        imageFileName,   prefix 
-	    	        ".jpg",          suffix 
-	    	        storageDir       directory 
-	    	    );
-	    }catch(Exception e){
-	    	e.printStackTrace();
-	    }
-	    
-
-	    // Save a file: path for use with ACTION_VIEW intents
-	    mCurrentPhotoPath = "file:" + image.getAbsolutePath();*/
-		
-		
-		
-		//return image; 
-	} 
-	
-	
-	private class getImageTask extends AsyncTask<String, Void, String> {
-		@Override
-		protected void onPreExecute() {
-			super.onPreExecute();
-			pd.show();
-		};
-
-		@Override
-		protected String doInBackground(String... params) {
-			String response = "";
-
-			try {
-				
-
-			} catch (Exception e) {
-				e.printStackTrace();
-				response = "No Internet";
-				BugSenseHandler.sendException(e);
-
-			}
-			return response;
-		}
-
-		@Override
-		protected void onPostExecute(String result) {
-			pd.dismiss();
-			System.out.println("The Message Is: " + result);
-			
-			if (!(result.equals("No Internet")) || !(result.equals(""))) {
-
-			}
-		}
 	}
-	
-	
+
+
 	private String getRealPathFromURI(Uri contentURI) {
 	    String result;
 	    Cursor cursor = getContentResolver().query(contentURI, null, null, null, null);
@@ -380,117 +326,22 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 		case REQUEST_CAMERA:
 			if (resultCode == RESULT_OK) {
 				try{
-					// Working code but sometimes give exception
-					//========================================================================
-					/*new Thread(new Runnable() {
-						
-						@Override
-						public void run() {*/
-							// TODO Auto-generated method stub
-							final File file = getTempFile(SubmitTicketScreen.this);  
-							
-							
-							
-							Intent mediaScanIntent = new Intent("android.intent.action.MEDIA_SCANNER_SCAN_FILE");
-							final File f = getTempFile(SubmitTicketScreen.this);
-						    selectedImg = Uri.fromFile(f);
-						    mediaScanIntent.setData(selectedImg);
-						    this.sendBroadcast(mediaScanIntent);
-							
-							
-							
-							/*try {
-								selectedImg =
-							Uri.parse(android.provider.MediaStore.Images.Media.insertImage(getContentResolver(),
-							file.getAbsolutePath(), null, null));
-							    new Handler().postDelayed(new Runnable() {
-									
-									@Override
-									public void run() {
-									file.delete();
-										
-									}
-								}, 2000);
-								
-								file.delete();
-							} catch (FileNotFoundException e) {
-							    // TODO Auto-generated catch block
-							    e.printStackTrace();
-							}*/
-							
-							
-							/*if(file.exists()){
-								Toast.makeText(getApplicationContext(), "FILE CHE...", Toast.LENGTH_SHORT).show();
-								
-							}else{
-								Toast.makeText(getApplicationContext(), "FILE Nathi....", Toast.LENGTH_SHORT).show();
-							}*/
-							selectedImg = getImageContentUri(SubmitTicketScreen.this, file);
-							//selectedImg = Uri.fromFile(file);
-							
-							realPath = getRealPathFromURI(selectedImg);
-							//Toast.makeText(getApplicationContext(), "Path is: "+realPath, Toast.LENGTH_SHORT).show();
-							
-							System.out.println("URI:: "+selectedImg);
-							selectPhoto.setText("Image attached");
-							//Toast.makeText(getApplicationContext(), "URI: "+selectedImg, Toast.LENGTH_SHORT).show();
-						/*}
-					});*/
-					
-					//=============================================================
-					//========================================
-					/*Uri u;
-		             if (hasImageCaptureBug()) {
-		                 File fi = new File("/sdcard/tmp");
-		                 try {
-		                     u = Uri.parse(android.provider.MediaStore.Images.Media.insertImage(getContentResolver(), fi.getAbsolutePath(), null, null));
-		                     if (!fi.delete()) {
-		                         Log.i("logMarker", "Failed to delete " + fi);
-		                     }
-		                 } catch (FileNotFoundException e) {
-		                     e.printStackTrace();
-		                 }
-		             } else {
-		                u = imageReturnedIntent.getData();
-		                selectedImg = u;
-			             selectPhoto.setText("Image attached");
-		            }*/
-		             
-		             
-						System.out.println("URI:: "+selectedImg);
-						
-						//Toast.makeText(getApplicationContext(), "URI: "+selectedImg, Toast.LENGTH_SHORT).show();
-		             //============================================
-					
-					
-					/* try {
-						 Uri selectedImage = selectedImg;
-			                //getContentResolver().notifyChange(selectedImage, null);
-			                ContentResolver cr = getContentResolver();
-			                Bitmap bitmap;
-			                bitmap = android.provider.MediaStore.Images.Media
-			                        .getBitmap(cr, selectedImage);
-			                rptImage.setImageBitmap(bitmap);
+                    // TODO Auto-generated method stub
+                    final File file = getTempFile(SubmitTicketScreen.this);
+                    Intent mediaScanIntent = new Intent("android.intent.action.MEDIA_SCANNER_SCAN_FILE");
+                    final File f = getTempFile(SubmitTicketScreen.this);
+                    selectedImg = Uri.fromFile(f);
+                    mediaScanIntent.setData(selectedImg);
+                    this.sendBroadcast(mediaScanIntent);
 
-			            } catch (Exception e) {
-			                Toast.makeText(this, "Failed to load", Toast.LENGTH_SHORT)
-			                        .show();
-			                Log.e("Camera", e.toString());
-			            }*/
-					
-					
-					
-					//Toast.makeText(getApplicationContext(), ""+file.delete(), Toast.LENGTH_SHORT).show();
-					/*new Handler().postDelayed(new Runnable() {
-						
-						@Override
-						public void run() {
-							asdf
-							new S3PutObjectTask().execute(uri);							
-						}
-					}, 1000);*/						
-					
-						
+                    selectedImg = getImageContentUri(SubmitTicketScreen.this, file);
+                    //selectedImg = Uri.fromFile(file);
+
+                    realPath = getRealPathFromURI(selectedImg);
+                    //Toast.makeText(getApplicationContext(), "Path is: "+realPath, Toast.LENGTH_SHORT).show();
+
+                    Log.d(TAG, "URI:: " + selectedImg);
+                    selectPhoto.setText("Image attached");
 				}catch(Exception e){
 					e.printStackTrace();
 					BugSenseHandler.sendException(e);
@@ -511,7 +362,7 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 	        photo = new File(android.os.Environment.getExternalStorageDirectory(), FILE_NAME);
 	    } else {*/
 	    
-	        photo = new File(getCacheDir(), "abcd.jpg");
+	        photo = new File(getCacheDir(), "dummmy.jpg");
 	   // }    
 	    if (photo != null) {
 	        intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(photo));
@@ -544,199 +395,9 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
                 return null;
             }
         }
-		
-		/*long photoId;
-	    Uri photoUri = MediaStore.Images.Media.getContentUri("external");
-	 
-	    String[] projection = {MediaStore.Images.ImageColumns._ID};
-	    // TODO This will break if we have no matching item in the MediaStore.
-	    Cursor cursor = context.getContentResolver().query(photoUri, projection, MediaStore.Images.ImageColumns.DATA + " LIKE ?", new String[] { imageFile.getAbsolutePath() }, null);
-	    cursor.moveToFirst();
-	 
-	    int columnIndex = cursor.getColumnIndex(projection[0]);
-	    photoId = cursor.getLong(columnIndex);
-	 
-	    cursor.close();
-	    return Uri.parse(photoUri.toString() + "/" + photoId);*/
-		
-		
     }
-	
-	/*private class S3PutObjectTask extends AsyncTask<Uri, Void, S3TaskResult> {
-
-		
-
-		protected void onPreExecute() {
-			
-			dialog.show();
-		}
-
-		protected S3TaskResult doInBackground(Uri... uris) {
-
-			if (uris == null || uris.length != 1) {
-				return null;
-			}
-
-			// The file location of the image selected.
-			Uri selectedImage = uris[0];
 
 
-            ContentResolver resolver = getContentResolver();
-            String fileSizeColumn[] = {OpenableColumns.SIZE}; 
-            
-			Cursor cursor = resolver.query(selectedImage,
-                    fileSizeColumn, null, null, null);
-			
-            cursor.moveToFirst();
-
-            int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
-            // If the size is unknown, the value stored is null.  But since an int can't be
-            // null in java, the behavior is implementation-specific, which is just a fancy
-            // term for "unpredictable".  So as a rule, check if it's null before assigning
-            // to an int.  This will happen often:  The storage API allows for remote
-            // files, whose size might not be locally known.
-            String size = null;
-            if (!cursor.isNull(sizeIndex)) {
-                // Technically the column stores an int, but cursor.getString will do the
-                // conversion automatically.
-                size = cursor.getString(sizeIndex);
-            } 
-            
-			cursor.close();
-
-			ObjectMetadata metadata = new ObjectMetadata();
-			metadata.setContentType(resolver.getType(selectedImage));
-			if(size != null){
-			    metadata.setContentLength(Long.parseLong(size));
-			}
-			
-			S3TaskResult result = new S3TaskResult();
-			
-
-			// Put the image data into S3.
-			try {
-				//s3Client.createBucket(Constants.getPictureBucket());
-
-				PutObjectRequest por = new PutObjectRequest(
-						Constants.getPictureBucket(), FILE_NAME ,
-						resolver.openInputStream(selectedImage),metadata);
-				
-				s3Client.putObject(por);
-				
-								
-			} catch (Exception exception) {
-
-				result.setErrorMessage(exception.getMessage());
-				BugSenseHandler.sendException(exception);
-			}
-
-			return result;
-		}
-
-		protected void onPostExecute(S3TaskResult result) {
-
-			dialog.dismiss();
-			
-			if (result.getErrorMessage() != null) {
-
-				displayErrorAlert(
-						SubmitTicketScreen.this.getString(R.string.upload_failure_title),
-						result.getErrorMessage());
-				
-			}else{
-				
-				
-				new Handler().postDelayed(new Runnable() {
-					@Override
-					public void run() {
-						new S3GeneratePresignedUrlTask().execute();
-					}
-				}, 500);
-				
-			}
-		}
-	}*/
-	
-	/*private class S3GeneratePresignedUrlTask extends AsyncTask<Void, Void, S3TaskResult> {
-
-		protected S3TaskResult doInBackground(Void... voids) {
-
-			S3TaskResult result = new S3TaskResult();
-			
-			try {
-		// 	Ensure that the image will be treated as such.
-				ResponseHeaderOverrides override = new ResponseHeaderOverrides();
-				override.setContentType("image/jpeg");
-				
-		// 	Generate the presigned URL.
-				
-		// 	Added an hour's worth of milliseconds to the current time.
-				Date expirationDate = new Date(	System.currentTimeMillis() + 3600000);
-				
-				java.util.Date expiration = new java.util.Date();
-				long msec = expiration.getTime();
-				msec += 1000 * 60 * 60 * 24 * 365; // 1 hour.
-				expiration.setTime(msec);
-				
-				
-				
-				GeneratePresignedUrlRequest urlRequest = new GeneratePresignedUrlRequest(Constants.getPictureBucket(), FILE_NAME);
-				urlRequest.setExpiration(expiration);
-				//urlRequest.setExpiration(0);
-				urlRequest.setResponseHeaders(override);
-				
-				URL url = s3Client.generatePresignedUrl(urlRequest);
-				System.out.println("~~~~~~~~~~ URL::"+url);
-				result.setUri(Uri.parse(url.toURI().toString()));
-				
-			} catch (Exception exception) {
-				
-				result.setErrorMessage(exception.getMessage());
-				BugSenseHandler.sendException(exception);
-			}
-			
-			return result;
-		}
-		
-		protected void onPostExecute(S3TaskResult result) {
-			
-			
-			
-			
-			if (result.getErrorMessage() != null) {
-				
-				displayErrorAlert(
-						SubmitTicketScreen.this
-						.getString(R.string.browser_failure_title),
-						result.getErrorMessage());
-			} else if (result.getUri() != null) {
-				
-		// 	Display in Browser.
-		//	startActivity(new Intent(Intent.ACTION_VIEW, result.getUri()));
-				System.out.println("URL:"+result.getUri());
-				
-				finalFileName = result.getUri().toString();
-				
-				//Toast.makeText(getApplicationContext(), "Please select information", Toast.LENGTH_SHORT).show();
-				InsertComplainTask task = new InsertComplainTask();
-				task.execute(new String[]{
-						myPrefs.getString("EmployeeCode", "0"),
-						finalSiteID,
-						finalSubCategoryID,
-						commentET.getText().toString().trim(),
-						finalSeverityName,
-						//URLEncoder.encode(finalFileName, "UTF-8"),
-						finalFileName,
-						myPrefs.getString("longitude", "73.5938466"), //finalLongtude
-						myPrefs.getString("latitude", "23.5389327"), //finalLatitude,
-						myPrefs.getString("EmployeeToken", "Token")});
-				
-				
-				//Toast.makeText(getApplicationContext(), ""+result.getUri(), Toast.LENGTH_SHORT).show();
-			}
-		}
-	}*/
-	
 	protected void displayErrorAlert(String title, String message) {
 
 		AlertDialog.Builder confirm = new AlertDialog.Builder(this);
@@ -755,28 +416,7 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 
 		confirm.show().show();
 	}
-	
-	private class S3TaskResult {
-		String errorMessage = null;
-		Uri uri = null;
 
-		public String getErrorMessage() {
-			return errorMessage;
-		}
-
-		public void setErrorMessage(String errorMessage) {
-			this.errorMessage = errorMessage;
-		}
-
-		public Uri getUri() {
-			return uri;
-		}
-
-		public void setUri(Uri uri) {
-			this.uri = uri;
-		}
-	}
-	
 	private void findLocation() {
 		locationMgr = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         locationMgr.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 10, this);
@@ -808,27 +448,12 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 	
 	}
 
-	/*private View.OnTouchListener sitesSpinnerOnTouch = new View.OnTouchListener() {
-	    public boolean onTouch(View v, MotionEvent event) {
-	    	System.out.println("CLick Event");
-	        if (event.getAction() == MotionEvent.ACTION_UP) {
-	          // Toast.makeText(getApplicationContext(), "Touched", Toast.LENGTH_SHORT).show();
-	           	if(sitedata.size()>0){
-	           		
-	           	}else{
-	           		SitesTask task = new SitesTask();
-	           		task.execute(new String[]{myPrefs.getString("EmployeeID", "0"),myPrefs.getString("EmployeeToken", "Token")});
-	           	}
-	           	//return true;
-	        }
-	        return false;
-	    }
-	};*/
-	
+
 	private View.OnTouchListener categorySpinnerOnTouch = new View.OnTouchListener() {
 	    public boolean onTouch(View v, MotionEvent event) {
 	        if (event.getAction() == MotionEvent.ACTION_UP) {
 	          // Toast.makeText(getApplicationContext(), "Touched", Toast.LENGTH_SHORT).show();
+                resetVendorDetails();
 	           	if(servicedata.size()>0){
 	           	}else{
 	           		CategoryTask task = new CategoryTask();
@@ -843,13 +468,11 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 	    public boolean onTouch(View v, MotionEvent event) {
 	        if (event.getAction() == MotionEvent.ACTION_UP) {
 	          // Toast.makeText(getApplicationContext(), "Touched", Toast.LENGTH_SHORT).show();
-	        	if(finalCategoryID.equals("") || finalCategoryID.equals(null)){
+	        	if(TextUtils.isEmpty(finalCategoryID)){
            			Toast.makeText(getApplicationContext(), "Please select category", Toast.LENGTH_SHORT).show();
            		}else{
-           			if(subCategorydata.size()>0){
-    	           	}else{
-    	           		SubCategoryTask task = new SubCategoryTask();
-    		        	task.execute(new String[]{finalCategoryID,myPrefs.getString("UserName", ""), myPrefs.getString("Password", "")});
+           			if(subCategorydata.size()==0){
+                        executeSubCategoryTask();
     	           	}
            		}
 	           	
@@ -857,8 +480,17 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 	        return false;
 	    }
 	};
-	
-	private View.OnTouchListener severitySpinnerOnTouch = new View.OnTouchListener() {
+
+    private void executeSubCategoryTask() {
+        SubCategoryTask task = new SubCategoryTask();
+        //finalSiteID =
+        if(isSiteSelectedAndAssigned()) {
+            task.execute(new String[]{finalSiteID, finalCategoryID, myPrefs.getString("UserName", ""), myPrefs.getString("Password", "")});
+
+        }
+    }
+
+    private View.OnTouchListener severitySpinnerOnTouch = new View.OnTouchListener() {
 	    public boolean onTouch(View v, MotionEvent event) {
 	        if (event.getAction() == MotionEvent.ACTION_UP) {
 	          // Toast.makeText(getApplicationContext(), "Touched", Toast.LENGTH_SHORT).show();
@@ -887,61 +519,35 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 			try{
 				
 				FILE_NAME = Constants.PICTURE_NAME + SystemClock.currentThreadTimeMillis();
-				
-				if(finalCategoryID.equals("")||finalCategoryID.equals(null)
-						|| finalSiteID.equals("") || finalSiteID.equals(null)
-						|| finalSubCategoryID.equals("") || finalSubCategoryID.equals(null)
-						|| finalSeverityName.equals("") || finalSeverityName.equals(null)
-						|| commentET.getText().toString().trim().equals("")
-						|| commentET.getText().toString().trim().equals(null)){
+                //validate is site is selected
+                boolean siteSelected = isSiteSelectedAndAssigned();
+               if(siteSelected && (TextUtils.isEmpty(finalCategoryID)
+						//|| TextUtils.isEmpty(finalSiteID)
+						|| TextUtils.isEmpty(finalSubCategoryID)
+						|| TextUtils.isEmpty(finalSeverityName)
+						|| commentET.getText().toString().trim().equals(""))){
 					Toast.makeText(getApplicationContext(), "Please select information", Toast.LENGTH_SHORT).show();
 				}else{
-					
-					///if(finalFileName.equals("") || finalFileName.equals(null)){
-						
-						/*if(selectPhoto.getText().toString().trim().equals("Image attached")){
-							new Handler().postDelayed(new Runnable() {
-								@Override
-									public void run() {
-										new S3PutObjectTask().execute(selectedImg);							
-									}
-								}, 100);
-							
-						}else{*/
-							InsertComplainTask task = new InsertComplainTask();
-							task.execute(new String[]{
-									//myPrefs.getString("UserName", ""),
-									finalSiteID,
-									finalCategoryID,
-									commentET.getText().toString().trim(),
-									finalSeverityName,
-									//URLEncoder.encode(finalFileName, "UTF-8"),
-									realPath,
-									myPrefs.getString("longitude", "73.5938466"), //finalLongtude
-									myPrefs.getString("latitude", "23.5389327"), //finalLatitude,
-									finalSubCategoryID, //issue type ID
-									myPrefs.getString("UserName", ""),
-									myPrefs.getString("Password", ""),});
-							
-						//}
-						
-						
-						
-						
-					/*}else{
-						new Handler().postDelayed(new Runnable() {
-							@Override
-								public void run() {
-									new S3PutObjectTask().execute(selectedImg);							
-								}
-							}, 100);
-					}*/
-					
-					
-					
-				}	
+                    pd.show();
+                    //assign the site selected
+                    finalSiteID = siteSuggestion.getSelectedSite().getString("siteId");
+                    InsertComplainTask task = new InsertComplainTask();
+                    task.execute(new String[]{
+                            //myPrefs.getString("UserName", ""),
+                            finalSiteID,
+                            finalCategoryID,
+                            commentET.getText().toString().trim(),
+                            finalSeverityName,
+                            //URLEncoder.encode(finalFileName, "UTF-8"),
+                            realPath,
+                            myPrefs.getString("longitude", "73.5938466"), //finalLongtude
+                            myPrefs.getString("latitude", "23.5389327"), //finalLatitude,
+                            finalSubCategoryID, //issue type ID
+                            myPrefs.getString("UserName", ""),
+                            myPrefs.getString("Password", ""),});
+				}
 			}catch(Exception e){
-				e.printStackTrace();
+				Log.e(TAG,"Could not post the ticket",e);
 			}
 						
 			break;
@@ -951,7 +557,23 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 			break;
 		}
 	}
-	
+
+    private boolean isSiteSelectedAndAssigned(){
+        boolean valid = true;
+        if(siteSuggestion.getSelectedSite()==null) {
+            valid=false;
+            Toast.makeText(getApplicationContext(), "Please select site", Toast.LENGTH_SHORT).show();
+        }else{
+            //assign the site
+            try {
+                finalSiteID = siteSuggestion.getSelectedSite().getString("siteId");
+            } catch (JSONException e) {
+                Log.e(TAG,"Could not find siteId",e);
+            }
+        }
+        return valid;
+    }
+
 	private class InsertComplainTask extends AsyncTask<String, Void, String> {
 		@Override
 		protected void onPreExecute() {
@@ -964,16 +586,16 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 			String response = "";
 
 			try {
-				System.out.println("EmployeeCode:"+params[0]);
-				System.out.println("SiteID:"+params[1]);
-				System.out.println("SubCategoryID:"+params[2]);
-				System.out.println("Description: "+params[3]);
-				System.out.println("SeverityName: "+params[4]);
-				System.out.println("finalFileName: "+params[5]);
-				System.out.println("GPSLong: "+params[6]);
-				System.out.println("GPSLat: "+params[7]);
-				System.out.println("EmployeeToken: "+params[8]);
-				System.out.println("EmployeeToken: "+params[9]);
+				Log.d(TAG,"EmployeeCode:"+params[0]);
+				Log.d(TAG,"SiteID:"+params[1]);
+				Log.d(TAG,"SubCategoryID:"+params[2]);
+				Log.d(TAG,"Description: "+params[3]);
+				Log.d(TAG,"SeverityName: "+params[4]);
+				Log.d(TAG,"finalFileName: "+params[5]);
+				Log.d(TAG,"GPSLong: "+params[6]);
+				Log.d(TAG,"GPSLat: "+params[7]);
+				Log.d(TAG,"EmployeeToken: "+params[8]);
+				Log.d(TAG,"EmployeeToken: "+params[9]);
 				
 				
 				//response = API.InsertComplaintsRest(params[0],params[1],params[2],params[3],params[4],params[5],params[6],params[7],params[8]);
@@ -999,8 +621,7 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 
 		@Override
 		protected void onPostExecute(String result) {
-			pd.dismiss();
-			System.out.println("The Message Is: " + result);
+			Log.d(TAG,"The Message Is: " + result);
 			
 			if (!(result.equals("No Internet")) || !(result.equals(""))) {
 
@@ -1019,10 +640,13 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 						}catch(Exception e){
 							e.printStackTrace();
 						}*/
-						
+						if(pd.isShowing()){
+                            pd.dismiss();
+                        }
 						startActivity(new Intent(SubmitTicketScreen.this,TicketViewScreen.class));
 						finish();	
 					}else{
+                        pd.dismiss();
 						JSONObject obj = new JSONObject(result);
 						JSONArray array = new JSONArray(obj.getString("messages"));
 						String message = array.getJSONObject(0).getString("defaultMessage");
@@ -1036,9 +660,7 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 					pd.dismiss();
 				}
 			} else {
-				Toast.makeText(getApplicationContext(),
-						"Error in response. Please try again.",
-						Toast.LENGTH_SHORT).show();
+				Toast.makeText(getApplicationContext(), "Error in response. Please try again.",	Toast.LENGTH_SHORT).show();
 				pd.dismiss();
 			}
 		}
@@ -1061,112 +683,6 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 	    }
 	    return( path.delete() );
 	  }
-	
-	private class SitesTask extends AsyncTask<String, Void, String> {
-		@Override
-		protected void onPreExecute() {
-			super.onPreExecute();
-			pd.show();
-		};
-
-		@Override
-		protected String doInBackground(String... params) {
-			String response = "";
-
-			try {
-				response = API.GetSitesRest(params[0],params[1]);
-
-			} catch (Exception e) {
-				e.printStackTrace();
-				response = "No Internet";
-				BugSenseHandler.sendException(e);
-
-			}
-			return response;
-		}
-
-		@Override
-		protected void onPostExecute(String result) {
-			//pd.dismiss(); // to show continues process of the data
-			System.out.println("The Message Is: " + result);
-			try{
-				if (!(result.equals("No Internet")) || !(result.equals(""))) {
-
-					try{
-						if(result.toString().contains("status") && (new JSONObject(result).getString("status").toString().equals("success"))){
-							try {
-								JSONObject obj = new JSONObject(result);
-								JSONArray array = new JSONArray(obj.getString("data"));
-								if(API.DEBUG)
-									System.out.println("ARRAY:"+array.toString(2));
-								siteAdapter.clear();
-								sitedata.clear();
-								sitesName.clear();
-								for(int i=0; i<array.length();i++){
-									JSONObject o = array.getJSONObject(i);
-									SitesData s = new SitesData(o.getString("siteId"), o.getString("name"));
-									sitedata.add(s);
-									sitesName.add(o.getString("name"));
-								}
-								
-								siteAdapter = new ArrayAdapter<String>(SubmitTicketScreen.this, android.R.layout.simple_spinner_item,  sitesName);
-								sitesSpnr.setAdapter(siteAdapter);
-								siteAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-								sitesSpnr.setOnItemSelectedListener(new OnItemSelectedListener() {
-									@Override
-									public void onItemSelected(AdapterView<?> arg0,	View arg1, int arg2, long arg3) {
-										//Toast.makeText(getApplicationContext(), "Hello : "+sitedata.get(arg2).getSiteID(), Toast.LENGTH_SHORT).show();
-										finalSiteID = sitedata.get(arg2).getSiteID();
-									}
-									@Override
-									public void onNothingSelected(AdapterView<?> arg0) {}
-								});
-
-							} catch (Exception e) {
-								if(API.DEBUG)
-									e.printStackTrace();
-								Toast.makeText(getApplicationContext(),
-										"Error in response. Please try again.",
-										Toast.LENGTH_SHORT).show();
-								BugSenseHandler.sendException(e);
-								pd.dismiss();
-							}
-							
-							CategoryTask task = new CategoryTask();
-			           		task.execute(new String[]{myPrefs.getString("EmployeeToken", "Token")});
-						}else{
-							pd.dismiss();
-							Toast.makeText(getApplicationContext(), ""+new JSONObject(result).getString("messages").toString(), Toast.LENGTH_SHORT).show();
-						}
-					}catch(Exception e){
-						if(API.DEBUG){
-							e.printStackTrace();	
-						}
-						pd.dismiss();
-						Toast.makeText(getApplicationContext(),
-								"Error in response. Please try again.",
-								Toast.LENGTH_SHORT).show();
-					}
-					
-					
-					
-					
-				} else {
-					pd.dismiss();
-					Toast.makeText(getApplicationContext(),
-							"Error in response. Please try again.",
-							Toast.LENGTH_SHORT).show();
-				}
-			}catch(Exception e){
-				e.printStackTrace();
-				pd.dismiss();
-				Toast.makeText(getApplicationContext(),
-						"Error in response. Please try again.",
-						Toast.LENGTH_SHORT).show();
-			}
-			
-		}
-	}
 	
 	private class CategoryTask extends AsyncTask<String, Void, String> {
 		@Override
@@ -1194,7 +710,7 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 		@Override
 		protected void onPostExecute(String result) {
 			//pd.dismiss();
-			System.out.println("The Message Is: " + result);
+			Log.d(TAG,"The Message Is: " + result);
 			
 			if (!(result.equals("No Internet")) || !(result.equals(""))) {
 
@@ -1203,8 +719,9 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 					if(result.toString().contains("status") && (new JSONObject(result).getString("status").toString().equals("success"))){
 						JSONObject obj = new JSONObject(result);
 						JSONArray array = new JSONArray(obj.getString("data"));
-						if(API.DEBUG)
-							System.out.println("ARRAY:"+array.toString(2));
+						if(API.DEBUG) {
+                            Log.d(TAG, "ARRAY:" + array.toString(2));
+                        }
 						serviceAdapter.clear();
 						servicedata.clear();
 						serviceName.clear();
@@ -1223,13 +740,12 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 							public void onItemSelected(AdapterView<?> arg0,	View arg1, int arg2, long arg3) {
 								//Toast.makeText(getApplicationContext(), "Hello : "+servicedata.get(arg2).getCategoryID(), Toast.LENGTH_SHORT).show();
 								finalCategoryID = servicedata.get(arg2).getServiceID();
+                                finalCategoryName = servicedata.get(arg2).getServiceName();
 								subCategorydata.clear();
 								subCategoryAdapter.clear();
 								subCategoryName.clear();
-								
-								SubCategoryTask task = new SubCategoryTask();
-					        	task.execute(new String[]{finalCategoryID,myPrefs.getString("UserName", ""), myPrefs.getString("Password", "")});
-								
+
+                                executeSubCategoryTask();
 								
 							}
 							@Override
@@ -1244,8 +760,6 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 						Toast.makeText(getApplicationContext(), ""+new JSONObject(result).getString("messages").toString(), Toast.LENGTH_SHORT).show();
 					}
 					
-					
-
 				} catch (Exception e) {
 					if(API.DEBUG){
 						e.printStackTrace();	
@@ -1256,9 +770,7 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 							Toast.LENGTH_SHORT).show();
 					BugSenseHandler.sendException(e);
 				}
-				
-				
-	        	
+
 			} else {
 				pd.dismiss();
 				Toast.makeText(getApplicationContext(),
@@ -1280,8 +792,8 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 			String response = "";
 
 			try {
-				response = API.getSubCategoryRest(params[0], params[1],params[2]);
-
+                //fetch them using - getVendorAndIssueTypes
+				response = API.getVendorAndIssueTypes(params[0], params[1],params[2],params[3]);
 			} catch (Exception e) {
 				e.printStackTrace();
 				response = "No Internet";
@@ -1294,25 +806,39 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 		protected void onPostExecute(String result) {
 			pd.dismiss();
 			if(API.DEBUG)
-				System.out.println("The Message Is: " + result);
+				Log.d(TAG,"The Message Is: " + result);
 			
 			if (!(result.equals("No Internet")) || !(result.equals(""))) {
 
 				try {
 					JSONObject obj = new JSONObject(result);
-					JSONArray array = new JSONArray(obj.getString("data"));
-					if(API.DEBUG)
-						System.out.println("ARRAY:"+array.toString(2));
+                    JSONObject data = obj.getJSONObject("data");
+                    if(!TextUtils.isEmpty(finalCategoryID) && !finalCategoryName.equalsIgnoreCase("ALL OK") && data.isNull("vendors")){
+                       Toast vendorErrorToast = Toast.makeText(getApplicationContext(), "No Vendor Mapping Found",  Toast.LENGTH_LONG);
+                       vendorErrorToast.show();
+                       return;//no further processing.. when no vendor found
+                    }
+                    JSONArray issueTypes = data.getJSONArray("issueTypes");
+                    if (API.DEBUG) {
+                        Log.d(TAG, "ARRAY:" + issueTypes.toString(2));
+                    }
+                    if(finalCategoryName.equalsIgnoreCase("ALL OK")){
+                        resetVendorDetails();
+                    }else if(!data.isNull("vendors")){
+                        JSONObject vendor = data.getJSONObject("vendors");
+                        setVendorDetails(vendor);
+                    }
+
 					subCategoryAdapter.clear();
 					subCategorydata.clear();
 					subCategoryName.clear();
-					for(int i=0; i<array.length();i++){
-						JSONObject o = array.getJSONObject(i);
+					for(int i=0; i<issueTypes.length();i++){
+						JSONObject o = issueTypes.getJSONObject(i);
 						SubCategoryData s = new SubCategoryData(o.getString("issueTypeId"), o.getString("name"));
 						subCategorydata.add(s);
 						subCategoryName.add(o.getString("name"));
 					}
-					
+
 					subCategoryAdapter = new ArrayAdapter<String>(SubmitTicketScreen.this, android.R.layout.simple_spinner_item,  subCategoryName);
 					subCategorySpnr.setAdapter(subCategoryAdapter);
 					subCategoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -1339,9 +865,24 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 			}
 		}
 	}
-	
-	
-	private class SeverityTask extends AsyncTask<String, Void, String> {
+
+    private void setVendorDetails(JSONObject vendor) throws JSONException {
+        vendorEmail.setText("Vendor Email: " + vendor.getString("emailId"));
+        vendorMobile.setText("Vendor Mobile: " + vendor.getString("mobile"));
+        vendorDetails.setVisibility(View.VISIBLE);
+        //vendorEmail.setVisibility(View.VISIBLE);
+        //vendorMobile.setVisibility(View.VISIBLE);
+    }
+
+    private void resetVendorDetails(){
+        vendorDetails.setVisibility(View.GONE);
+        vendorEmail.setText("");
+        vendorMobile.setText("");
+        //vendorEmail.setVisibility(View.GONE);
+        //vendorMobile.setVisibility(View.GONE);
+    }
+
+    private class SeverityTask extends AsyncTask<String, Void, String> {
 		@Override
 		protected void onPreExecute() {
 			super.onPreExecute();
@@ -1360,7 +901,6 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 					e.printStackTrace();
 				response = "No Internet";
 				BugSenseHandler.sendException(e);
-
 			}
 			return response;
 		}
@@ -1369,7 +909,7 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 		protected void onPostExecute(String result) {
 			pd.dismiss();
 			if(API.DEBUG)
-				System.out.println("The Message Is: " + result);
+				Log.d(TAG,"The Message Is: " + result);
 			
 			if (!(result.equals("No Internet")) || !(result.equals(""))) {
 
@@ -1378,8 +918,9 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 					if(result.toString().contains("status") && (new JSONObject(result).getString("status").toString().equals("success"))){
 						JSONObject obj = new JSONObject(result);
 						JSONArray array = new JSONArray(obj.getString("data"));
-						if(API.DEBUG)
-							System.out.println("ARRAY:"+array.toString(2));
+						if(API.DEBUG) {
+                            Log.d(TAG, "ARRAY:" + array.toString(2));
+                        }
 						severityAdapter.clear();
 						severitydata.clear();
 						severityName.clear();
@@ -1409,8 +950,9 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 					
 
 				} catch (Exception e) {
-					if(API.DEBUG)
-						e.printStackTrace();
+					if(API.DEBUG) {
+                        Log.e(TAG,"Error on severity selection",e);
+                    }
 					pd.dismiss();
 					Toast.makeText(getApplicationContext(),
 							"Error in response. Please try again.",
@@ -1425,48 +967,7 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 		}
 	}
 	
-	/*private class InsertComplainTask extends AsyncTask<String, Void, String> {
-		@Override
-		protected void onPreExecute() {
-			super.onPreExecute();
-			pd.show();
-		};
 
-		@Override
-		protected String doInBackground(String... params) {
-			String response = "";
-
-			try {
-				//response = API.InsertComplaints(EmployeeCode, SiteID, SubCategoryID, Description, SeverityName, Filename, GPSLong, GPSLat, tokenString)
-
-			} catch (Exception e) {
-				e.printStackTrace();
-				response = "No Internet";
-
-			}
-			return response;
-		}
-
-		@Override
-		protected void onPostExecute(String result) {
-			pd.dismiss();
-			System.out.println("The Message Is: " + result);
-			
-			if (!(result.equals("No Internet")) || !(result.equals(""))) {
-
-				try {
-					
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			} else {
-				Toast.makeText(getApplicationContext(),
-						"Error in response. Please try again.",
-						Toast.LENGTH_SHORT).show();
-			}
-		}
-	}*/
-	
 	public void ShowAlertDialog(){
 		 AlertDialog.Builder builder = new AlertDialog.Builder(SubmitTicketScreen.this);
 		 builder.setTitle("Unsaved Changes");
@@ -1488,7 +989,8 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 		AlertDialog  dialog = builder.create();
 		dialog.show();
 	}
-	
+
+
 	@Override
 	public void onLocationChanged(Location location) {
 		
@@ -1516,9 +1018,5 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 
 	@Override
 	public void onStatusChanged(String provider, int status, Bundle extras) {}
-	
-	
-	
-	// 
 
 }

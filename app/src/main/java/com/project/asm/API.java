@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -31,130 +33,89 @@ public class API {
 	// WEB SERVICE DETAILS AND METHODS
 	// ================================================
 	private static final String TAG = "ASM_API";
-	// Server Deails
-	private static String SOAP_NAMESPACE = "http://securet.in/";
-	private static String SOAP_URL = "http://54.186.184.239/ASM_Web/WS/GetASMData.asmx";
-	
-	// For ValidateEmployee
-	/*private static String SOAP_METHOD_LOGIN = "ValidateEmployee";
-	private static String SOAP_ACTION_LOGIN = SOAP_NAMESPACE + SOAP_METHOD_LOGIN;*/
-	
-	// For GetSitesbyEmployeeID
-	/*private static String SOAP_METHOD_GET_SITES = "GetSitesbyEmployeeID";
-	private static String SOAP_ACTION_GET_SITES = SOAP_NAMESPACE + SOAP_METHOD_GET_SITES;*/
-	
-	// For GetAllCategory
-	/*private static String SOAP_METHOD_GET_CATEGORY = "GetAllCategory";
-	private static String SOAP_ACTION_GET_CATEGORY = SOAP_NAMESPACE + SOAP_METHOD_GET_CATEGORY;*/
-	
-	// For GetSubCategoryByCategoryID
-	/*private static String SOAP_METHOD_GET_SUB_CATEGORY = "GetSubCategoriesbyCategoryID";
-	private static String SOAP_ACTION_GET_SUB_CATEGORY = SOAP_NAMESPACE + SOAP_METHOD_GET_SUB_CATEGORY;*/
-	
-	
-	// For GetSubCategoryByCategoryID
-	/*private static String SOAP_METHOD_GET_SEVERITY = "GetAllSeverity";
-	private static String SOAP_ACTION_GET_SEVERITY = SOAP_NAMESPACE + SOAP_METHOD_GET_SEVERITY;*/
-	
-	/*// For InsertComplaints
-	private static String SOAP_METHOD_INSERT_COMPLAINTS = "InsertComplaints";
-	private static String SOAP_ACTION_INSERT_COMPLAINTS = SOAP_NAMESPACE + SOAP_METHOD_INSERT_COMPLAINTS;*/
 
-	// For InsertComplaints
-	/*private static String SOAP_METHOD_VIEW_COMPLAINTS = "GetComplaintsforEmployee";
-	private static String SOAP_ACTION_VIEW_COMPLAINTS = SOAP_NAMESPACE + SOAP_METHOD_VIEW_COMPLAINTS;*/
-	
-	// For GetComplaintByComplaintID
-	private static String SOAP_METHOD_GET_COMPLAINT = "GetComplaintDetailsbyComplaintID";
-	private static String SOAP_ACTION_GET_COMPLAINT = SOAP_NAMESPACE + SOAP_METHOD_GET_COMPLAINT;
-	
-	// For UpdateComplaint
-	private static String SOAP_METHOD_UPDATE_COMPLAINT = "UpdateComplaints";
-	private static String SOAP_ACTION_UPDATE_COMPLAINT = SOAP_NAMESPACE + SOAP_METHOD_UPDATE_COMPLAINT;
-	
-	// For GetAllComment
-	private static String SOAP_METHOD_ALL_COMMENTS = "GetAllCommentsforComplaint";
-	private static String SOAP_ACTION_ALL_COMMENTS = SOAP_NAMESPACE + SOAP_METHOD_ALL_COMMENTS;
-	
-	// For Logout
-	/*private static String SOAP_METHOD_LOGOUT = "LogOut";
-	private static String SOAP_ACTION_LOGOUT = SOAP_NAMESPACE + SOAP_METHOD_LOGOUT;*/
-	
-	// For debugs all logs...
+    // For debugs all logs...
 	public static int LOGLEVEL = 1; // set -1 to stop debugging in the app
 	public static boolean WARN = LOGLEVEL > 1; // set LOGLEVEL = 2
 	public static boolean DEBUG = LOGLEVEL > 0; // set LOGLEVEL = 1
 	
-	public static String bugsenseAPI = "56253889";
+	public static String bugsenseAPI = "2dd5922c";
 	
 	
-	public static String HOST = "http://asm.securet.in/";
-	private static String REST = "rest/";
-	
+//	public static String HOST = "http://192.168.0.61:8080/asm/";
+//    public static String HOST = "http://test.asm.securet.in/";
+    public static String HOST = "http://asm.securet.in/";
+    private static String REST = "rest/v1/";
+
 	private static String VALIDATE_USER = HOST+REST+"validateUser"; // done
 	private static String SERVICE_TYPES = HOST+REST+"serviceTypes"; // done
 	private static String GET_ISSUE_TYPES_FOR_SERVICE = HOST+REST+"getIssueTypesForService"; // done
+    private static final String GET_VENDORS_AND_ISSUE_TYPES_FOR_SERVICE = HOST+REST+"getVendorAndIssueTypes"; // done;
 	private static String GET_USER_SITES = HOST+REST+"getSitesForUser"; // done
 	private static String GET_ALL_SEVERITY = HOST+REST+"severityTypes"; // done
 	
 	private static String INSERT_COMPLAINT = HOST+REST+"ticket/create"; // done
 	
-	private static String GET_COMPLAINT_DETAILS_BY_ID = HOST+REST+"/ticket/forId"; // done
+	private static String GET_COMPLAINT_DETAILS_BY_ID = HOST+REST+"ticket/forId"; // done
 	
 	private static String GET_COMPLAINT_FOR_EMPLOYEE = HOST+REST+"ticket/forUser"; // done
 	
 	private static String UPDATE_COMPLAINT = HOST+REST+"ticket/update"; // 
 	
-	private static String GET_COMMENTS_FOR_COMPLAINT = HOST+REST+"ticket/history"; 
-	 
-	
+	private static String GET_COMMENTS_FOR_COMPLAINT = HOST+REST+"ticket/history";
+
+    private static final String SEARCH_SITES_BY_KEYWORD = HOST+REST+"searchUserSites";;
+    private static final String CHECK_APP_NOTIFICATIONS = HOST+REST+"appNotifications";;
+
 	
 	
 	// --------------------------------------------------------------------------------
-	// WEb SERVICE METHODS START FROM HERE
+	// Restful API invocation METHODS START FROM HERE
 	// --------------------------------------------------------------------------------
 	
 	//===========================================================================
-	//                     All WebService with SOAP Then REST
+	//                     All  REST services
 	//===========================================================================
 	//===========================================================================
 	
-	/*// Get ValidateUser SOAP
-	public static String LoginSOAP(String emailAddress, String password) {
-		String responce = null;
-		SoapObject request = new SoapObject(SOAP_NAMESPACE, SOAP_METHOD_LOGIN);
-		
-		request.addProperty("emailID", emailAddress);
-		request.addProperty("password", password);
-		
-		SoapSerializationEnvelope envelope = new SoapSerializationEnvelope(SoapEnvelope.VER11);
-		envelope.setOutputSoapObject(request);
-		envelope.dotNet = true;
-		try {
-			HttpTransportSE androidHttpTransport = new HttpTransportSE(SOAP_URL);
-			androidHttpTransport.call(SOAP_ACTION_LOGIN, envelope);
-			
-			SoapObject result = (SoapObject) envelope.bodyIn;
-			 
-			
-			if (result != null) {
-				responce = result.getProperty(0).toString();
-			} else {
-				//Toast.makeText(getApplicationContext(), "No Response",Toast.LENGTH_LONG).show();
-				responce = "";
-			}
-			
-			System.out.println("The Responce is: "+responce.toString());
-		} catch (Exception e) {
-			e.printStackTrace();
-			responce = "";
-		}
-		return responce;
-	}*/
-	
-	// Validate User REST
+
+    // Make a rest, add any parameters REST
+    public static String makeRequest(String URI, Map<String,Object> params) {
+        String response = null;
+        RestClient client = new RestClient(URI);
+
+        for(Map.Entry<String,Object> param: params.entrySet()){
+            if(param.getValue() instanceof  String){
+               client.AddParam(param.getKey(), String.valueOf(param.getValue()));
+            }else if(param.getValue() instanceof List){
+                for(Object paramValue : (List)param.getValue()){
+                    client.AddParam(param.getKey(), String.valueOf(paramValue));
+                }
+            }
+        }
+        try {
+            client.Execute(RequestMethod.GET);
+        } catch (Exception e) {
+            Log.e(TAG,"Could not load request:"+URI,e);
+            response = "";
+        }
+
+
+        if(client.getResponseCode()== 200){
+            response = client.getResponse();
+        }else{
+            response = "";
+        }
+
+        if (DEBUG) {
+            Log.d(TAG, "Response: " + response);
+        }
+        return response;
+    }
+
+    // Validate User REST
 	public static String LoginRest(String userNameValue, String passwordValue) {
-		String responce = null;
+		String response = null;
 		RestClient client = new RestClient(VALIDATE_USER);
 		
 		client.AddParam("j_username", userNameValue);
@@ -167,28 +128,28 @@ public class API {
 
 		} catch (Exception e) {
 			e.printStackTrace();
-			responce = "";
+			response = "";
 			if (DEBUG)
 				Log.d(TAG, "");
 		}
 		
 		
 		if(client.getResponseCode()== 200){
-			responce = client.getResponse();	
+			response = client.getResponse();	
 		}else{
-			responce = "";
+			response = "";
 		}
 		
 		if (DEBUG)
-			Log.d(TAG, "Response: " + responce);
-		return responce;
+			Log.d(TAG, "Response: " + response);
+		return response;
 	}
 	
 	
 		
 	// GET Sites
 	/*public static String GetSitesSOAP(String employeeId, String tokenString) {
-		String responce = null;
+		String response = null;
 		SoapObject request = new SoapObject(SOAP_NAMESPACE, SOAP_METHOD_GET_SITES);
 		
 		request.addProperty("EmployeeID", employeeId);
@@ -204,25 +165,25 @@ public class API {
 			SoapObject result = (SoapObject) envelope.bodyIn;
 			
 			if (result != null) {
-				responce = result.getProperty(0).toString();
+				response = result.getProperty(0).toString();
 				
 				
 			} else {
 				//Toast.makeText(getApplicationContext(), "No Response",Toast.LENGTH_LONG).show();
-				responce = "";
+				response = "";
 			}
 			
-			System.out.println("The Responce is: "+responce.toString());
+			System.out.println("The response is: "+response.toString());
 		} catch (Exception e) {
 			e.printStackTrace();
-			responce = "";
+			response = "";
 		}
-		return responce;
+		return response;
 	}*/
 		
 	// get User sites REST
 	public static String GetSitesRest( String userNameValue, String passwordValue) {
-		String responce = null;
+		String response = null;
 		
 		RestClient client = new RestClient(GET_USER_SITES);
 		
@@ -235,26 +196,26 @@ public class API {
 
 		} catch (Exception e) {
 			e.printStackTrace();
-			responce = "";
+			response = "";
 			if (DEBUG)
 				Log.d(TAG, "");
 		}
 		
 		
 		if(client.getResponseCode()== 200){
-			responce = client.getResponse();	
+			response = client.getResponse();	
 		}else{
-			responce = "";
+			response = "";
 		}
 		
 		if (DEBUG)
-			Log.d(TAG, "Response: " + responce);
-		return responce;
+			Log.d(TAG, "Response: " + response);
+		return response;
 	}
 	
 	/*// Get All Category
 	public static String GetAllCategorySOAP(String tokenString) {
-		String responce = null;
+		String response = null;
 		SoapObject request = new SoapObject(SOAP_NAMESPACE, SOAP_METHOD_GET_CATEGORY);
 		
 		request.addProperty("EmployeeToken", tokenString);
@@ -267,24 +228,24 @@ public class API {
 			androidHttpTransport.call(SOAP_ACTION_GET_CATEGORY, envelope);
 			SoapObject result = (SoapObject) envelope.bodyIn;
 			if (result != null) {
-				responce = result.getProperty(0).toString();
+				response = result.getProperty(0).toString();
 			} else {
 				//Toast.makeText(getApplicationContext(), "No Response",Toast.LENGTH_LONG).show();
-				responce = "";
+				response = "";
 			}
 			
-			System.out.println("The Responce is: "+responce.toString());
+			System.out.println("The response is: "+response.toString());
 		} catch (Exception e) {
 			e.printStackTrace();
-			responce = "";
+			response = "";
 		}
-		return responce;
+		return response;
 	}*/
 	
 	
 	// Validate GetAllCategory REST
 	public static String getAllCategoryRest(String userNameValue, String passwordValue) {
-		String responce = null;
+		String response = null;
 		RestClient client = new RestClient(SERVICE_TYPES);
 		
 		client.AddParam("j_username", userNameValue);
@@ -296,26 +257,26 @@ public class API {
 
 		} catch (Exception e) {
 			e.printStackTrace();
-			responce = "";
+			response = "";
 			if (DEBUG)
 				Log.d(TAG, "");
 		}
 		
 		
 		if(client.getResponseCode()== 200){
-			responce = client.getResponse();	
+			response = client.getResponse();	
 		}else{
-			responce = "";
+			response = "";
 		}
 		
 		if (DEBUG)
-			Log.d(TAG, "Response: " + responce);
-		return responce;
+			Log.d(TAG, "Response: " + response);
+		return response;
 	}
 	
 	// Get Sub Category
 	/*public static String GetSubCategorySOAP(String categoryID, String tokenString ) {
-		String responce = null;
+		String response = null;
 		SoapObject request = new SoapObject(SOAP_NAMESPACE, SOAP_METHOD_GET_SUB_CATEGORY);
 		
 		request.addProperty("CategoryID", categoryID);
@@ -329,24 +290,56 @@ public class API {
 			androidHttpTransport.call(SOAP_ACTION_GET_SUB_CATEGORY, envelope);
 			SoapObject result = (SoapObject) envelope.bodyIn;
 			if (result != null) {
-				responce = result.getProperty(0).toString();
+				response = result.getProperty(0).toString();
 			} else {
 				//Toast.makeText(getApplicationContext(), "No Response",Toast.LENGTH_LONG).show();
-				responce = "";
+				response = "";
 			}
 			
-			System.out.println("The Responce is: "+responce.toString());
+			System.out.println("The response is: "+response.toString());
 		} catch (Exception e) {
 			e.printStackTrace();
-			responce = "";
+			response = "";
 		}
-		return responce;
+		return response;
 	}*/
-	
-	
+
+    // Validate GetSUBCategory REST
+    public static String getVendorAndIssueTypes(String siteId,String serviceIDValue, String userNameValue, String passwordValue) {
+        String response = null;
+        RestClient client = new RestClient(GET_VENDORS_AND_ISSUE_TYPES_FOR_SERVICE);
+
+        client.AddParam("siteId", siteId);
+        client.AddParam("serviceTypeId", serviceIDValue);
+        client.AddParam("j_username", userNameValue);
+        client.AddParam("j_password", passwordValue);
+
+        // client.AddParam("output", "json");
+        try {
+            client.Execute(RequestMethod.GET);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            response = "";
+            if (DEBUG)
+                Log.d(TAG, "");
+        }
+
+
+        if(client.getResponseCode()== 200){
+            response = client.getResponse();
+        }else{
+            response = "";
+        }
+
+        if (DEBUG)
+            Log.d(TAG, "Response: " + response);
+        return response;
+    }
+
 	// Validate GetSUBCategory REST
 	public static String getSubCategoryRest(String serviceIDValue, String userNameValue, String passwordValue) {
-		String responce = null;
+		String response = null;
 		RestClient client = new RestClient(GET_ISSUE_TYPES_FOR_SERVICE);
 		
 		client.AddParam("serviceTypeId", serviceIDValue);
@@ -359,27 +352,27 @@ public class API {
 
 		} catch (Exception e) {
 			e.printStackTrace();
-			responce = "";
+			response = "";
 			if (DEBUG)
 				Log.d(TAG, "");
 		}
 		
 		
 		if(client.getResponseCode()== 200){
-			responce = client.getResponse();	
+			response = client.getResponse();	
 		}else{
-			responce = "";
+			response = "";
 		}
 		
 		if (DEBUG)
-			Log.d(TAG, "Response: " + responce);
-		return responce;
+			Log.d(TAG, "Response: " + response);
+		return response;
 	}
 	
 	
 	// Get All Severity
 	/*public static String GetAllSeverity(String tokenString ) {
-		String responce = null;
+		String response = null;
 		SoapObject request = new SoapObject(SOAP_NAMESPACE, SOAP_METHOD_GET_SEVERITY);
 		
 		request.addProperty("EmployeeToken", tokenString);
@@ -392,24 +385,24 @@ public class API {
 			androidHttpTransport.call(SOAP_ACTION_GET_SEVERITY, envelope);
 			SoapObject result = (SoapObject) envelope.bodyIn;
 			if (result != null) {
-				responce = result.getProperty(0).toString();
+				response = result.getProperty(0).toString();
 			} else {
 				//Toast.makeText(getApplicationContext(), "No Response",Toast.LENGTH_LONG).show();
-				responce = "";
+				response = "";
 			}
 			
-			System.out.println("The Responce is: "+responce.toString());
+			System.out.println("The response is: "+response.toString());
 		} catch (Exception e) {
 			e.printStackTrace();
-			responce = "";
+			response = "";
 		}
-		return responce;
+		return response;
 	}*/
 	
 	
 	// Get All Severity
 	public static String GetAllSeverityRest(String userNameValue,String passwordValue ) {
-		String responce = null;
+		String response = null;
 		RestClient client = new RestClient(GET_ALL_SEVERITY);
 		
 		client.AddParam("j_username", userNameValue);
@@ -421,26 +414,26 @@ public class API {
 	
 		} catch (Exception e) {
 			e.printStackTrace();
-			responce = "";
+			response = "";
 			if (DEBUG)
 				Log.d(TAG, "");
 		}
 		
 		
 		if(client.getResponseCode()== 200){
-			responce = client.getResponse();	
+			response = client.getResponse();	
 		}else{
-			responce = "";
+			response = "";
 		}
 		
 		if (DEBUG)
-			Log.d(TAG, "Response: " + responce);
-		return responce;
+			Log.d(TAG, "Response: " + response);
+		return response;
 	}
 	
 	// Insert COmplain
 	/*public static String InsertComplaints(String EmployeeCode, String SiteID, String SubCategoryID, String Description, String SeverityName, String Filename, String GPSLong, String GPSLat, String tokenString ) {
-		String responce = null;
+		String response = null;
 		SoapObject request = new SoapObject(SOAP_NAMESPACE, SOAP_METHOD_INSERT_COMPLAINTS);
 		
 		request.addProperty("EmployeeCode", EmployeeCode);
@@ -461,18 +454,18 @@ public class API {
 			androidHttpTransport.call(SOAP_ACTION_INSERT_COMPLAINTS, envelope);
 			SoapObject result = (SoapObject) envelope.bodyIn;
 			if (result != null) {
-				responce = result.getProperty(0).toString();
+				response = result.getProperty(0).toString();
 			} else {
 				//Toast.makeText(getApplicationContext(), "No Response",Toast.LENGTH_LONG).show();
-				responce = "";
+				response = "";
 			}
 			
-			System.out.println("The Responce is: "+responce.toString());
+			System.out.println("The response is: "+response.toString());
 		} catch (Exception e) {
 			e.printStackTrace();
-			responce = "";
+			response = "";
 		}
-		return responce;
+		return response;
 	}*/
 	
 	
@@ -490,7 +483,7 @@ public class API {
 				String issueTypeIDValue,
 				String userNameValue, 
 				String passwordValue) {
-		String responce = "";
+		String responseStr = "";
 		
 		
 		/*try {
@@ -586,40 +579,40 @@ public class API {
 			httppost.setEntity(reqEntity);
 
 			System.out.println("executing request " + httppost.getRequestLine());
-			HttpResponse response = httpclient.execute(httppost);
+			HttpResponse httpResponse = httpclient.execute(httppost);
 			try {
 				//System.out.println("----------------------------------------");
 				//System.out.println(response.getStatusLine());
-				System.out.println("========================================== Result Code: "+response.getStatusLine().getStatusCode());
-				HttpEntity resEntity = response.getEntity();
+				System.out.println("========================================== Result Code: " + httpResponse.getStatusLine().getStatusCode());
+				HttpEntity resEntity = httpResponse.getEntity();
 				//System.out.println("Response content: " + resEntity.getContent().toString());
 				
 				
 				
-				if(response.getStatusLine().getStatusCode()==200){
+				if(httpResponse.getStatusLine().getStatusCode()==200){
 					
 					InputStream instream = resEntity.getContent();
 					//System.out.println("Response content: " + convertStreamToString(instream));
-					responce = convertStreamToString(instream);
+					responseStr = convertStreamToString(instream);
 	                // Closing the input stream will trigger connection release
 	                //instream.close();*/
 	                instream.close();
 					
 				}else{
-					responce="";
+                    responseStr="";
 				}
 				
 				//EntityUtils.consume(resEntity);
-			}catch(Exception e){ 
-				responce  = "";
+			}catch(Exception e){
+                responseStr  = "";
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
-			responce  = "";
+			responseStr  = "";
 		}
 		
 		if (DEBUG)
-			Log.d(TAG, "Response: " + responce);
+			Log.d(TAG, "Response: " + responseStr);
 		
 		
 		/*RestClient client = new RestClient(INSERT_COMPLAINT);
@@ -643,25 +636,25 @@ public class API {
 
 		} catch (Exception e) {
 			e.printStackTrace();
-			responce = "";
+			response = "";
 			if (DEBUG)
 				Log.d(TAG, "");
 		}
 		
 		
 		if(client.getResponseCode()== 200){
-			responce = client.getResponse();	
+			response = client.getResponse();	
 		}else{
-			responce = "";
+			response = "";
 		}*/
 		
 		if (DEBUG)
-			Log.d(TAG, "Response: " + responce);
-		return responce;
+			Log.d(TAG, "Response: " + responseStr);
+		return responseStr;
 	}	
 	// Get All COmplain
 	/*public static String ViewComplaints(String EmployeeCode, String tokenString ) {
-		String responce = null;
+		String response = null;
 		SoapObject request = new SoapObject(SOAP_NAMESPACE, SOAP_METHOD_VIEW_COMPLAINTS);
 		
 		request.addProperty("EmployeeCode", EmployeeCode);
@@ -675,24 +668,28 @@ public class API {
 			androidHttpTransport.call(SOAP_ACTION_VIEW_COMPLAINTS, envelope);
 			SoapObject result = (SoapObject) envelope.bodyIn;
 			if (result != null) {
-				responce = result.getProperty(0).toString();
+				response = result.getProperty(0).toString();
 			} else {
 				//Toast.makeText(getApplicationContext(), "No Response",Toast.LENGTH_LONG).show();
-				responce = "";
+				response = "";
 			}
 			
-			System.out.println("The Responce is: "+responce.toString());
+			System.out.println("The response is: "+response.toString());
 		} catch (Exception e) {
 			e.printStackTrace();
-			responce = "";
+			response = "";
 		}
-		return responce;
+		return response;
 	}*/
-	
-	
+
+    // Get All tickets for user with filters and offset
+    public static String fetchTickets(Map<String,Object> params) {
+        return makeRequest(GET_COMPLAINT_FOR_EMPLOYEE,params);
+    }
+
 	// Get All COmplain REST
 	public static String ViewComplaintsRest(String userNameValue, String passwordValue ) {
-		String responce = null;
+		String response = null;
 		RestClient client = new RestClient(GET_COMPLAINT_FOR_EMPLOYEE);
 		
 		//client.AddParam("ticketId", ticketIDValue);
@@ -705,27 +702,27 @@ public class API {
 
 		} catch (Exception e) {
 			e.printStackTrace();
-			responce = "";
+			response = "";
 			if (DEBUG)
 				Log.d(TAG, "");
 		}
 		
 		
 		if(client.getResponseCode()== 200){
-			responce = client.getResponse();	
+			response = client.getResponse();	
 		}else{
-			responce = "";
+			response = "";
 		}
 		
 		if (DEBUG)
-			Log.d(TAG, "Response: " + responce);
-		return responce;
+			Log.d(TAG, "Response: " + response);
+		return response;
 	}
 	
 	
 	// Get All Complaint by ID
 	/*public static String GetComplaintByComplaintID(String ComplaintID, String tokenString ) {
-		String responce = null;
+		String response = null;
 		SoapObject request = new SoapObject(SOAP_NAMESPACE, SOAP_METHOD_GET_COMPLAINT);
 		
 		request.addProperty("ComplaintID", ComplaintID);
@@ -739,23 +736,23 @@ public class API {
 			androidHttpTransport.call(SOAP_ACTION_GET_COMPLAINT, envelope);
 			SoapObject result = (SoapObject) envelope.bodyIn;
 			if (result != null) {
-				responce = result.getProperty(0).toString();
+				response = result.getProperty(0).toString();
 			} else {
 				//Toast.makeText(getApplicationContext(), "No Response",Toast.LENGTH_LONG).show();
-				responce = "";
+				response = "";
 			}
 			
-			System.out.println("The Responce is: "+responce.toString());
+			System.out.println("The response is: "+response.toString());
 		} catch (Exception e) {
 			e.printStackTrace();
-			responce = "";
+			response = "";
 		}
-		return responce;
+		return response;
 	}*/
 	
 	// Get All Complaint by ID REST
 	public static String GetComplaintByComplaintIDRest(String ticketIDValue, String userNameValue, String passwordValue ) {
-		String responce = null;
+		String response = null;
 		RestClient client = new RestClient(GET_COMPLAINT_DETAILS_BY_ID);
 		
 		client.AddParam("ticketId", ticketIDValue);
@@ -768,26 +765,26 @@ public class API {
 
 		} catch (Exception e) {
 			e.printStackTrace();
-			responce = "";
+			response = "";
 			if (DEBUG)
 				Log.d(TAG, "");
 		}
 		
 		
 		if(client.getResponseCode()== 200){
-			responce = client.getResponse();	
+			response = client.getResponse();	
 		}else{
-			responce = "";
+			response = "";
 		}
 		
 		if (DEBUG)
-			Log.d(TAG, "Response: " + responce);
-		return responce;
+			Log.d(TAG, "Response: " + response);
+		return response;
 	}
 	
 	// Update Complaint
 	/*public static String UpdateComplaint(String EmployeeCode, String ComplaintID, String SiteID, String Description, String StatusID,String tokenString ) {
-		String responce = null;
+		String response = null;
 		SoapObject request = new SoapObject(SOAP_NAMESPACE, SOAP_METHOD_UPDATE_COMPLAINT);
 		
 		request.addProperty("EmployeeCode", EmployeeCode);
@@ -805,22 +802,22 @@ public class API {
 			androidHttpTransport.call(SOAP_ACTION_UPDATE_COMPLAINT, envelope);
 			SoapObject result = (SoapObject) envelope.bodyIn;
 			if (result != null) {
-				responce = result.getProperty(0).toString();
+				response = result.getProperty(0).toString();
 			} else {
 				//Toast.makeText(getApplicationContext(), "No Response",Toast.LENGTH_LONG).show();
-				responce = "";
+				response = "";
 			}
 			
-			System.out.println("The Responce is: "+responce.toString());
+			System.out.println("The response is: "+response.toString());
 		} catch (Exception e) {
 			e.printStackTrace();
-			responce = "";
+			response = "";
 		}
-		return responce;
+		return response;
 	}*/
 	
 	public static String UpdateComplaintRest(String ComplaintID,String Description, String StatusID,String userNameValue, String passwordValue ) {
-		String responce = null;
+		String responseStr = null;
 		
 		HttpClient httpclient = new DefaultHttpClient();
 		try {
@@ -843,48 +840,48 @@ public class API {
 			httppost.setEntity(reqEntity);
 
 			System.out.println("executing request " + httppost.getRequestLine());
-			HttpResponse response = httpclient.execute(httppost);
+			HttpResponse httpResponse = httpclient.execute(httppost);
 			try {
 				//System.out.println("----------------------------------------");
 				//System.out.println(response.getStatusLine());
-				System.out.println("========================================== Result Code: "+response.getStatusLine().getStatusCode());
-				HttpEntity resEntity = response.getEntity();
+				System.out.println("========================================== Result Code: "+httpResponse.getStatusLine().getStatusCode());
+				HttpEntity resEntity = httpResponse.getEntity();
 				//System.out.println("Response content: " + resEntity.getContent().toString());
 				
 				
 				
-				if(response.getStatusLine().getStatusCode()==200){
+				if(httpResponse.getStatusLine().getStatusCode()==200){
 					
 					InputStream instream = resEntity.getContent();
 					//System.out.println("Response content: " + convertStreamToString(instream));
-					responce = convertStreamToString(instream);
+                    responseStr = convertStreamToString(instream);
 	                // Closing the input stream will trigger connection release
 	                //instream.close();*/
 	                instream.close();
 					
 				}else{
-					responce="";
+                    responseStr="";
 				}
 				
 				//EntityUtils.consume(resEntity);
-			}catch(Exception e){ 
-				responce  = "";
+			}catch(Exception e){
+                responseStr  = "";
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
-			responce  = "";
+			responseStr  = "";
 		}
 
 		if (DEBUG)
-			Log.d(TAG, "Response: " + responce);
-		return responce;
+			Log.d(TAG, "Response: " + responseStr);
+		return responseStr;
 	}
 	
 	
 	
 	// Get All Comments by ID REST
 	public static String GetAllCommentsByComplaintIDRest(String ticketIDValue, String userNameValue, String passwordValue ) {
-		String responce = null;
+		String response = null;
 		RestClient client = new RestClient(GET_COMMENTS_FOR_COMPLAINT);
 		
 		client.AddParam("ticketId", ticketIDValue);
@@ -897,85 +894,56 @@ public class API {
 
 		} catch (Exception e) {
 			e.printStackTrace();
-			responce = "";
+			response = "";
 			if (DEBUG)
 				Log.d(TAG, "");
 		}
 		
 		
 		if(client.getResponseCode()== 200){
-			responce = client.getResponse();	
+			response = client.getResponse();	
 		}else{
-			responce = "";
+			response = "";
 		}
 		
 		if (DEBUG)
-			Log.d(TAG, "Response: " + responce);
-		return responce;
+			Log.d(TAG, "Response: " + response);
+		return response;
 	}
-	
-	// Get All Comments by ID
-	/*public static String GetAllCommentsByComplaintID(String ComplaintID, String tokenString ) {
-		String responce = null;
-		SoapObject request = new SoapObject(SOAP_NAMESPACE, SOAP_METHOD_ALL_COMMENTS);
-		
-		request.addProperty("ComplaintID", ComplaintID);
-		request.addProperty("EmployeeToken", tokenString);
-		
-		SoapSerializationEnvelope envelope = new SoapSerializationEnvelope(SoapEnvelope.VER11);
-		envelope.setOutputSoapObject(request);
-		envelope.dotNet = true;
-		try {
-			HttpTransportSE androidHttpTransport = new HttpTransportSE(SOAP_URL);
-			androidHttpTransport.call(SOAP_ACTION_ALL_COMMENTS, envelope);
-			SoapObject result = (SoapObject) envelope.bodyIn;
-			if (result != null) {
-				responce = result.getProperty(0).toString();
-			} else {
-				//Toast.makeText(getApplicationContext(), "No Response",Toast.LENGTH_LONG).show();
-				responce = "";
-			}
-			
-			System.out.println("The Responce is: "+responce.toString());
-		} catch (Exception e) {
-			e.printStackTrace();
-			responce = "";
-		}
-		return responce;
-	}*/
-	
-	
-	
-	
-	/*// Get LOGOUT
-	public static String getLogout(String EmployeeID, String tokenString ) {
-		String responce = null;
-		SoapObject request = new SoapObject(SOAP_NAMESPACE, SOAP_METHOD_LOGOUT);
-		
-		request.addProperty("EmployeeID", EmployeeID);
-		request.addProperty("Token", tokenString);
-		
-		SoapSerializationEnvelope envelope = new SoapSerializationEnvelope(SoapEnvelope.VER11);
-		envelope.setOutputSoapObject(request);
-		envelope.dotNet = true;
-		try {
-			HttpTransportSE androidHttpTransport = new HttpTransportSE(SOAP_URL);
-			androidHttpTransport.call(SOAP_ACTION_LOGOUT, envelope);
-			SoapObject result = (SoapObject) envelope.bodyIn;
-			if (result != null) {
-				responce = result.getProperty(0).toString();
-			} else {
-				//Toast.makeText(getApplicationContext(), "No Response",Toast.LENGTH_LONG).show();
-				responce = "";
-			}
-			
-			System.out.println("The Responce is: "+responce.toString());
-		} catch (Exception e) {
-			e.printStackTrace();
-			responce = "";
-		}
-		return responce;
-	}*/
+
+    // Get sites search by key word..
+    public static String searchSites(String searchString,String resultSize,String userNameValue, String passwordValue ) {
+        String response = null;
+        RestClient client = new RestClient(SEARCH_SITES_BY_KEYWORD);
+
+        client.AddParam("searchString", searchString);
+        client.AddParam("resultSize", resultSize);
+        client.AddParam("j_username", userNameValue);
+        client.AddParam("j_password", passwordValue);
+
+        // client.AddParam("output", "json");
+        try {
+            client.Execute(RequestMethod.GET);
+        } catch (Exception e) {
+            response = "";
+            if (DEBUG) {
+                //Log.e(TAG, "Error searching sites",e);
+            }
+        }
+
+
+        if(client.getResponseCode()== 200){
+            response = client.getResponse();
+        }else{
+            response = "";
+        }
+
+        if (DEBUG) {
+            Log.d(TAG, "Response: " + response);
+        }
+        return response;
+    }
+
 	private static String convertStreamToString(InputStream is) {
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(is));
@@ -996,5 +964,9 @@ public class API {
             }
         }
         return sb.toString();
+    }
+
+    public static String checkAppNotifications(Map<String,Object> params) {
+       return makeRequest(CHECK_APP_NOTIFICATIONS,params);
     }
 }

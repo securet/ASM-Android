@@ -63,7 +63,7 @@
                 android:layout_marginLeft="5dp"
                 android:layout_marginRight="3dp"
                 android:gravity="center_vertical"
-                android:singleLine="true"
+                android:singleLine="false"
                 android:text="Ticket"
                 android:textColor="#454545"
                 android:textSize="14sp"  />

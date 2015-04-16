@@ -16,7 +16,7 @@
     <string name="logout_txt">Logout</string>
     <string name="new_ticket">Submit New Ticket</string>
 	<string name="submit_txt">Submit</string>
-	<string name="accept_close">Accept and Close</string>
+	<string name="accept_close">Accept</string>
 	
     <string name="previous_comment"><u>Previous Comments</u></string>
     
@@ -40,5 +40,10 @@
     <string name="ok">OK</string>
     <string name="uploading">Uploading image…</string>
      <string name="step1">1. You can upload an image file to the Amazon S3 using AsyncTask:</string>
-    
+    <string name="siteSuggestHint">Type area or site name</string>
+    <string name="vendorName">Vendor Name</string>
+    <string name="vendorEmail">Vendor Email</string>
+    <string name="vendorMobile">Vendor Mobile</string>
+    <string name="comments">Comments</string>
+
 </resources>

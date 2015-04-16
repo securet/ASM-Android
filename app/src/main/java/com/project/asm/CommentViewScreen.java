@@ -225,9 +225,6 @@ public class CommentViewScreen extends Activity implements OnClickListener, OnIt
 		
 	}
 	
-	
-	
-	
 	public void ShowAlertDialog(){
 		 AlertDialog.Builder builder = new AlertDialog.Builder(CommentViewScreen.this);
 		 builder.setTitle("Unsaved Changes");
@@ -249,8 +246,5 @@ public class CommentViewScreen extends Activity implements OnClickListener, OnIt
 		AlertDialog  dialog = builder.create();
 		dialog.show();
 	}
-	
-	
-	// 
 
 }

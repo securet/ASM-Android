@@ -24,17 +24,19 @@ public class LoginScreen extends Activity implements OnClickListener {
 	private SharedPreferences myPrefs;
 	private SharedPreferences.Editor prefsEditor;
 	private boolean login = false;
+
+
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		 BugSenseHandler.initAndStartSession(LoginScreen.this, API.bugsenseAPI);
-		 setContentView(R.layout.login_layout);
-		
-		
-
+        super.onCreate(savedInstanceState);
+        BugSenseHandler.initAndStartSession(LoginScreen.this, API.bugsenseAPI);
+        setContentView(R.layout.login_layout);
 		myPrefs = getSharedPreferences("myPrefs", MODE_PRIVATE);
 		login = myPrefs.getBoolean("login", false);
+
+        Utils.setAppVersion(this);
+
 		if (login) {
 			Intent i = new Intent(LoginScreen.this, OptionScreen.class);
 			startActivity(i);
@@ -55,7 +57,7 @@ public class LoginScreen extends Activity implements OnClickListener {
 
 	}
 
-	@Override
+    @Override
 	public void onClick(View v) {
 		switch (v.getId()) {
 		case R.id.loginBtn:

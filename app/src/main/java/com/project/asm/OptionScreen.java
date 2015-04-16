@@ -41,45 +41,47 @@ public class OptionScreen extends Activity implements OnClickListener, LocationL
 		super.onCreate(savedInstanceState);
 		 BugSenseHandler.initAndStartSession(OptionScreen.this, API.bugsenseAPI);
 		setContentView(R.layout.option_layout);
-		
+
 		myPrefs = getSharedPreferences("myPrefs", MODE_PRIVATE);
-		
+
 		{
 	    	hardFix.setLatitude(Double.parseDouble(myPrefs.getString("latitude", "23.5389327")));
 	        hardFix.setLongitude(Double.parseDouble(myPrefs.getString("longitude", "73.5938466")));
-	        
+
 	    }
-		
-		
+
+
 		// resources
 		logoutImage = (ImageView) findViewById(R.id.logoutImage);
 		logoutText = (TextView) findViewById(R.id.logoutText);
 		submitLayout = (LinearLayout) findViewById(R.id.submitLayout);
 		viewTicketLayout = (LinearLayout) findViewById(R.id.viewTicketLayout);
 		employeeName = (TextView) findViewById(R.id.employeeName);
-		
+
 		// listener
 		logoutImage.setOnClickListener(this);
 		logoutText.setOnClickListener(this);
 		submitLayout.setOnClickListener(this);
 		viewTicketLayout.setOnClickListener(this);
-		
+
 		employeeName.setText("Logged in as "+myPrefs.getString("EmployeeName", "Chikhalkar"));
-		
+
 		pd = new ProgressDialog(OptionScreen.this);
 		pd.setMessage("Please wait...");
 		pd.setCancelable(false);
-		 
+
 		findLocation();
-		
+
+        //check for any updates from server
+        AppUpdateNotifier.initAppUpdateNotifier(this);
 	}
-	
+
 	@Override
 	protected void onResume() {
 		CheckEnableGPS();
 		super.onResume();
 	}
-	
+
 	 private void CheckEnableGPS(){
 		 
 		 LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);

@@ -26,12 +26,14 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -40,8 +42,9 @@ import com.function.imageUpload.Constants;
 
 public class UpdateTicketScreen extends Activity implements OnClickListener, LocationListener{
 
-	ImageView backBtn;
-	TextView sitesSpnr, categorySpnr, subCategorySpnr, severitySpnr;
+    private static final String TAG = UpdateTicketScreen.class.getName();
+    ImageView backBtn;
+	TextView sitesSpnr, categorySpnr, subCategorySpnr, severitySpnr, vendorEmail,vendorMobile;
 	String commentMessage = "";
 	ProgressDialog pd;
 	private SharedPreferences myPrefs;
@@ -59,6 +62,7 @@ public class UpdateTicketScreen extends Activity implements OnClickListener, Loc
 	LocationManager locationMgr;
 	private TextView ticketTitle, complaintStatusTV, dateTV;
 	private ImageView statusIcon;
+    private RelativeLayout vendorDetails=null;
 	
 	private String ComplaintID;
 	private String ComplaintCode;
@@ -68,6 +72,8 @@ public class UpdateTicketScreen extends Activity implements OnClickListener, Loc
 	private String ComplaintSiteName;
 	private String ComplaintCategoryID;
 	private String ComplaintCategoryName;
+    private String ComplaintVendorEmail;
+    private String ComplaintVendorMobile;
 	private String ComplaintSubCategoryID;
 	private String ComplaintSubCategoryName;
 	private String ComplaintStatusID;
@@ -99,7 +105,12 @@ public class UpdateTicketScreen extends Activity implements OnClickListener, Loc
 		//resources
 		backBtn  = (ImageView) findViewById(R.id.backBtn);
 		sitesSpnr = (TextView) findViewById(R.id.sitesSpnr);
-		commentET = (EditText) findViewById(R.id.commentET);
+
+        vendorDetails = (RelativeLayout) findViewById(R.id.vendorDetails);
+		vendorEmail = (TextView) findViewById(R.id.vendorEmail);
+        vendorMobile = (TextView) findViewById(R.id.vendorMobile);
+
+        commentET = (EditText) findViewById(R.id.commentET);
 		categorySpnr = (TextView) findViewById(R.id.categorySpinner);
 		subCategorySpnr = (TextView) findViewById(R.id.subCategorySpnr);
 		severitySpnr = (TextView) findViewById(R.id.severitySpnr);
@@ -133,7 +144,8 @@ public class UpdateTicketScreen extends Activity implements OnClickListener, Loc
 		
 		if(getIntent().getExtras().getString("complain_status").toLowerCase().equals("open")){
 			statusIcon.setImageResource(R.drawable.open_icon);
-			closeStatusBtn.setVisibility(View.GONE);
+            closeStatusBtn.setText("Close");
+			//closeStatusBtn.setVisibility(View.GONE);
     	}else if(getIntent().getExtras().getString("complain_status").toLowerCase().equals("work_in_progress")){
     		statusIcon.setImageResource(R.drawable.inprogress_icon);
     		closeStatusBtn.setVisibility(View.GONE);
@@ -193,8 +205,8 @@ public class UpdateTicketScreen extends Activity implements OnClickListener, Loc
 				Toast.makeText(getApplicationContext(), "Please enter information.", Toast.LENGTH_SHORT).show();
 				
 			}else{
-				
-				if(getIntent().getExtras().getString("complain_status").toLowerCase().equals("resolved")){
+				String ticketStatus = getIntent().getExtras().getString("complain_status");
+				if(ticketStatus.equalsIgnoreCase("resolved") || ticketStatus.equalsIgnoreCase("open")){
 					ComplaintStatusID = "CLOSED";
 				}
 				UpdateComplainTask task = new UpdateComplainTask();
@@ -365,10 +377,11 @@ public class UpdateTicketScreen extends Activity implements OnClickListener, Loc
 						}else{
 							ComplaintSeverity = (obj.getJSONObject("severity")).getString("enumerationId");
 						}
-						
-						
-						ComplaintSiteID = obj.getJSONObject("site").getString("siteId");
-						ComplaintSiteName = obj.getJSONObject("site").getString("name");
+
+
+                        JSONObject site = obj.getJSONObject("site");
+                        ComplaintSiteID = site.getString("siteId");
+						ComplaintSiteName = site.getString("name")+"\n"+(site.isNull("area")?"":site.getString("area"));
 						
 						//ComplaintCategoryName = obj.getJSONObject("serviceType").getString("name");
 						if(obj.isNull(("serviceType"))){
@@ -379,7 +392,15 @@ public class UpdateTicketScreen extends Activity implements OnClickListener, Loc
 							ComplaintCategoryID = obj.getJSONObject("serviceType").getString("serviceTypeId");
 							ComplaintCategoryName = obj.getJSONObject("serviceType").getString("name");
 						}
-						
+
+                        if(!obj.isNull("resolver")){
+                            vendorDetails.setVisibility(View.VISIBLE);
+                            JSONObject resolver = obj.getJSONObject("resolver");
+                            ComplaintVendorEmail = resolver.getString("emailId");
+                            ComplaintVendorMobile = resolver.getString("mobile");
+                        }else{
+                            vendorDetails.setVisibility(View.GONE);
+                        }
 						
 						if(obj.isNull("issueType")){
 							ComplaintSubCategoryID = "NOT AVAILABLE";
@@ -396,8 +417,8 @@ public class UpdateTicketScreen extends Activity implements OnClickListener, Loc
 							
 							Filename = API.HOST + array.getJSONObject(0).getString("attachmentPath");
 						}catch(Exception e){
-							e.printStackTrace();
-							Filename ="No Image Available";
+                            Log.d(TAG,"No Image path found",e);
+                            Filename ="No Image Available";
 						}
 						
 						String date = obj.getString("createdTimestamp");
@@ -405,6 +426,8 @@ public class UpdateTicketScreen extends Activity implements OnClickListener, Loc
 						dateTV.setText(date);
 						sitesSpnr.setText(ComplaintSiteName);
 						categorySpnr.setText(ComplaintCategoryName);
+                        vendorEmail.setText(ComplaintVendorEmail);
+                        vendorMobile.setText(ComplaintVendorMobile);
 						subCategorySpnr.setText(ComplaintSubCategoryName);
 						severitySpnr.setText(ComplaintSeverity);
 						

@@ -64,6 +64,7 @@
 		android:gravity="center_horizontal" android:orientation="vertical"
 		android:paddingBottom="10dp">
 
+<!--
 		<LinearLayout android:layout_width="fill_parent"
 			android:layout_height="wrap_content" android:gravity="center_horizontal">
 
@@ -75,6 +76,7 @@
 			<ImageView android:layout_width="wrap_content"
 				android:layout_height="wrap_content" android:src="@drawable/securet_logo" />
 		</LinearLayout>
+-->
 
 		<TextView android:id="@+id/employeeName" 
 		    android:layout_width="wrap_content"
@@ -82,7 +84,21 @@
 			android:text="Logged in as Chikalkar" android:textColor="#999999"
 			android:textSize="14dp" />
 	</LinearLayout>
-    
-    
 
+<!--    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:gravity="center_horizontal"
+        android:orientation="horizontal"
+        android:paddingBottom="20dp" >
+        <TextView
+            android:id="@+id/appVersion"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:layout_margin="2dp"
+            android:textColor="#348EEA"
+            android:textSize="16sp" />
+    </LinearLayout>-->
 </LinearLayout>

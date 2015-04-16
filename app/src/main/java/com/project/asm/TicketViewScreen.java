@@ -1,6 +1,10 @@
 package com.project.asm;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -16,6 +20,8 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.text.TextUtils;
+import android.util.Log;
 import android.util.SparseBooleanArray;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -33,11 +39,14 @@ import android.widget.Toast;
 
 import com.bugsense.trace.BugSenseHandler;
 import com.data.model.Complain;
+import com.project.asm.listener.EndlessScrollListener;
 
 @SuppressLint("NewApi")
 public class TicketViewScreen extends Activity implements OnClickListener, OnItemClickListener{
 
-	ProgressDialog pd;
+    private static final String TAG = TicketViewScreen.class.getName();
+    private static final int ticketsToDisplay = 10;
+    ProgressDialog pd;
 	private SharedPreferences myPrefs;
 	private SharedPreferences.Editor prefsEditor;
 	
@@ -48,7 +57,7 @@ public class TicketViewScreen extends Activity implements OnClickListener, OnIte
     private ImageView backBtn, filterBtn;
     private Dialog filterDialog;
     private ImageView refreshBtn;
-    private static final String[] GENRES = new String[] {
+    private static final String[] TICKET_STATUS = new String[] {
         "Open", "Work_In_Progress", "Resolved", "Closed"
     };
 	
@@ -58,12 +67,12 @@ public class TicketViewScreen extends Activity implements OnClickListener, OnIte
     ImageView cancelTV;
     Button okBtn;
     ListView listView;
-    ArrayAdapter<String> adapter;
-    
+    ArrayAdapter<String> statusFilterAdapter;
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		 BugSenseHandler.initAndStartSession(TicketViewScreen.this, API.bugsenseAPI);
+		BugSenseHandler.initAndStartSession(TicketViewScreen.this, API.bugsenseAPI);
 		setContentView(R.layout.view_ticket_layout);
 		
 		myPrefs = getSharedPreferences("myPrefs", MODE_PRIVATE);
@@ -81,7 +90,7 @@ public class TicketViewScreen extends Activity implements OnClickListener, OnIte
 		refreshBtn.setOnClickListener(this);
 		
 		complainLV.setOnItemClickListener(this);
-		
+
 		pd = new ProgressDialog(TicketViewScreen.this);
 		pd.setMessage("Please wait...");
 		pd.setCancelable(false);
@@ -96,8 +105,8 @@ public class TicketViewScreen extends Activity implements OnClickListener, OnIte
 		okBtn = (Button) filterDialog.findViewById(R.id.okBtn);
 					
 		listView = new ListView(getApplicationContext());
-		adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_multiple_choice, GENRES);
-		listView.setAdapter(adapter);
+		statusFilterAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_multiple_choice, TICKET_STATUS);
+		listView.setAdapter(statusFilterAdapter);
 					
         listView.setItemsCanFocus(false);
         listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
@@ -115,29 +124,56 @@ public class TicketViewScreen extends Activity implements OnClickListener, OnIte
         	}
         }else{
         	//Toast.makeText(getApplicationContext(), ""+status.size(), Toast.LENGTH_SHORT).show();
-        	for(int j=0; j<adapter.getCount();j++){
+        	for(int j=0; j< statusFilterAdapter.getCount();j++){
         		listView.setItemChecked(j, true);
     		}
         }
-		
+
+        complainLV.setOnScrollListener(new EndlessScrollListener(ticketsToDisplay) {
+            @Override
+            public void onLoadMore(int page, int totalItemsCount) {
+                ViewComplainTask task = new ViewComplainTask();
+                task.setStart(totalItemsCount);
+                task.setLength(ticketsToDisplay);
+                setTicketStatusFilter(task);
+                task.execute();
+            }
+        });
 		
 		employeeName.setText("Logged in as "+myPrefs.getString("EmployeeName", "Chikhalkar"));
-		
-		ViewComplainTask task = new ViewComplainTask();
-   		task.execute(new String[]{myPrefs.getString("EmployeeCode", "0"),myPrefs.getString("EmployeeToken", "Token")});
-				 
-   		
+
+        startLoadingTickets();
 	}
-	
-	
-	
-	@Override
+
+    private void startLoadingTickets() {
+        ViewComplainTask task = new ViewComplainTask();
+        //always reset the adapter on start...
+        if(m_orders!=null){
+            m_orders.clear();
+            //complainAdapter.notifyDataSetChanged();
+        }
+        setTicketStatusFilter(task);
+        task.execute();
+    }
+
+    private void setTicketStatusFilter(ViewComplainTask task) {
+        populateFilterStatus();
+        if(status!=null && status.size()>0){
+            List<String> statusFilter = new ArrayList<String>();
+            for(String selectedStatus : status){
+                statusFilter.add(selectedStatus);
+            }
+            task.setStatusFilter(statusFilter);
+        }
+    }
+
+
+    @Override
 	public void onClick(View v) {
 		switch(v.getId()){
 		case R.id.refreshBtn:
-			
-			ViewComplainTask task = new ViewComplainTask();
-	   		task.execute(new String[]{myPrefs.getString("EmployeeCode", "0"),myPrefs.getString("EmployeeToken", "Token")});
+
+            startLoadingTickets();
 			break;
 		
 		case R.id.backBtn:
@@ -145,39 +181,7 @@ public class TicketViewScreen extends Activity implements OnClickListener, OnIte
 			break;
 		
 		case R.id.filterBtn:
-/*			filterDialog = new Dialog(this,R.style.CustomDialogTheme);
-			filterDialog.setContentView(R.layout.filter_dialog);
-			filterDialog.setCancelable(true);
-			filterDialog.setCanceledOnTouchOutside(true);
-			LinearLayout listLayout = (LinearLayout) filterDialog.findViewById(R.id.listlayout);
-			ImageView cancelTV = (ImageView) filterDialog.findViewById(R.id.cancelTv);
-			Button okBtn = (Button) filterDialog.findViewById(R.id.okBtn);
-						
-			final ListView listView = new ListView(getApplicationContext());
-			ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_multiple_choice, GENRES);
-			listView.setAdapter(adapter);
-						
-	        listView.setItemsCanFocus(false);
-	        listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
-	        listLayout.addView(listView);
-	        listView.setCacheColorHint(0x00000000);*/
-	        
-	        listView.setOnItemClickListener(new OnItemClickListener() {
 
-				@SuppressLint("NewApi")
-				@Override
-				public void onItemClick(AdapterView<?> arg0, View arg1,int arg2, long arg3) {
-					
-					
-					System.out.println("ITEMS: "+listView.getCheckedItemPositions().toString());
-					SparseBooleanArray checked = listView.getCheckedItemPositions();
-					//long[] i = listView.getCheckItemIds();
-					
-					//Toast.makeText(getApplicationContext(), "Hey.. "+checked.size()+"  "+i.toString(), Toast.LENGTH_SHORT).show();
-					
-				}
-			});
-	        
 	        if(status.size()>0){
 	        	for(int i = 0; i<listView.getAdapter().getCount();i++){
 	        		for(int j=0; j<status.size();j++){
@@ -200,154 +204,15 @@ public class TicketViewScreen extends Activity implements OnClickListener, OnIte
 	        okBtn.setOnClickListener(new OnClickListener() {
 				@Override
 				public void onClick(View v) {
-					
 					filterDialog.dismiss();
-					
-					System.out.println("ITEMS: "+listView.getCheckedItemPositions().toString());
 					SparseBooleanArray checked = listView.getCheckedItemPositions();
-					
-					System.out.println("CheckedItem:::"+listView.getCheckedItemCount());
-					
 					if(checked.size()>0){
-						
-						status.clear();
-						for(int i = 0; i < listView.getAdapter().getCount(); i++) {
-						    if (checked.get(i)) {
-						        System.out.println("ITEM: "+listView.getAdapter().getItem(i));
-						        status.add(""+listView.getAdapter().getItem(i).toString().toLowerCase());
-						     }
-						}
-						
-						temp_orders = new ArrayList<Complain>();
-						temp_orders.clear();
-						for(int i = 0; i< m_orders.size();i++){
-							for(int j=0; j<status.size();j++){
-								if(m_orders.get(i).getComplaintStatus().toLowerCase().equals(status.get(j).toLowerCase())){
-									Complain s = new Complain(m_orders.get(i).getComplaintID(), m_orders.get(i).getComplaintCode(),m_orders.get(i).getComplaintStatus(),m_orders.get(i).getSiteCode(),m_orders.get(i).getComplaintCategoryName());
-									temp_orders.add(s);
-									break;
-								}
-							}
-						}
-						
-						if(temp_orders.size()>0){
-							complainLV.setVisibility(View.VISIBLE);
-							complainAdapter = new ComplainOrder(TicketViewScreen.this, R.layout.complain_row, temp_orders);
-						    complainLV.setAdapter(complainAdapter);
-						    complainAdapter.notifyDataSetChanged();
-						}else{
-							complainLV.setVisibility(View.INVISIBLE);
-							// THIS IS REMAINING TO IMPLEMENT
-							String msg = "";
-							/*if(status.size()>0){
-								 
-					        	for(int j=0; j<status.size();j++){
-					        		msg = msg + ", "+status.get(j); 	
-					        	}
-					        	
-					        }else{
-					        	msg = "";
-					        }*/
-							Toast.makeText(getApplicationContext(), "No tickets available to display!", Toast.LENGTH_SHORT).show();
-						}
-						
-						
-					}else{
-						complainAdapter = new ComplainOrder(TicketViewScreen.this, R.layout.complain_row, m_orders);
-					    complainLV.setAdapter(complainAdapter);
-					    
+                        startLoadingTickets();
 					}
-					
-					
-					
-					/*if(listView.getCheckedItemPosition() == -1){
-						Toast.makeText(getApplicationContext(), "Please select option to filter", Toast.LENGTH_SHORT).show();
-					}
-					//Toast.makeText(getApplicationContext(), ""+listView.getCheckedItemPosition(), Toast.LENGTH_SHORT).show();
-					
-					if(listView.getCheckedItemPosition()==0){ // for OPEN
-						System.out.println("OPEN");
-						temp_orders = new ArrayList<Complain>();
-						temp_orders.clear();
-						for(int i=0; i<m_orders.size();i++){
-							if(m_orders.get(i).getComplaintStatus().equals("Open")){
-								System.out.println("STATUS:: "+m_orders.get(i).getComplaintStatus());
-								Complain s = new Complain(m_orders.get(i).getComplaintID(), m_orders.get(i).getComplaintCode(),m_orders.get(i).getComplaintStatus());
-								temp_orders.add(s);
-							}
-						}
-						if(temp_orders.size()>0){
-							
-							complainAdapter = new ComplainOrder(TicketViewScreen.this, R.layout.complain_row, temp_orders);
-						    complainLV.setAdapter(complainAdapter);
-						    complainAdapter.notifyDataSetChanged();
-						}else{
-							Toast.makeText(getApplicationContext(), "Complain not available", Toast.LENGTH_SHORT).show();
-						}
-						filterDialog.dismiss();
-					}else if(listView.getCheckedItemPosition()==1){ // for Work in progress
-						System.out.println("Work in Progress");
-						temp_orders = new ArrayList<Complain>();
-						temp_orders.clear();
-						for(int i=0; i<m_orders.size();i++){
-							if(m_orders.get(i).getComplaintStatus().equals("Work In Progress")){
-								Complain s = new Complain(m_orders.get(i).getComplaintID(), m_orders.get(i).getComplaintCode(),m_orders.get(i).getComplaintStatus());
-								temp_orders.add(s);
-							}
-						}
-						if(temp_orders.size()>0){
-							complainAdapter = new ComplainOrder(TicketViewScreen.this, R.layout.complain_row, temp_orders);
-						    complainLV.setAdapter(complainAdapter);
-						    complainAdapter.notifyDataSetChanged();
-						}else{
-							Toast.makeText(getApplicationContext(), "Complain not available", Toast.LENGTH_SHORT).show();
-						}
-						filterDialog.dismiss();
-					}else if(listView.getCheckedItemPosition()==2){ // for Resolved
-						System.out.println("Resolved");
-						temp_orders = new ArrayList<Complain>();
-						temp_orders.clear();
-						for(int i=0; i<m_orders.size();i++){
-							if(m_orders.get(i).getComplaintStatus().equals("Resolved")){
-								Complain s = new Complain(m_orders.get(i).getComplaintID(), m_orders.get(i).getComplaintCode(),m_orders.get(i).getComplaintStatus());
-								temp_orders.add(s);
-							}
-						}
-						if(temp_orders.size()>0){
-							complainAdapter = new ComplainOrder(TicketViewScreen.this, R.layout.complain_row, temp_orders);
-						    complainLV.setAdapter(complainAdapter);
-						    complainAdapter.notifyDataSetChanged();
-						}else{
-							Toast.makeText(getApplicationContext(), "Complain not available", Toast.LENGTH_SHORT).show();
-						}
-						filterDialog.dismiss();
-					}else if(listView.getCheckedItemPosition()==3){ // for Closed
-						System.out.println("Closed");
-						temp_orders = new ArrayList<Complain>();
-						temp_orders.clear();
-						for(int i=0; i<m_orders.size();i++){
-							if(m_orders.get(i).getComplaintStatus().equals("Closed")){
-								Complain s = new Complain(m_orders.get(i).getComplaintID(), m_orders.get(i).getComplaintCode(),m_orders.get(i).getComplaintStatus());
-								temp_orders.add(s);
-							}
-						}
-						if(temp_orders.size()>0){
-							complainAdapter = new ComplainOrder(TicketViewScreen.this, R.layout.complain_row, temp_orders);
-						    complainLV.setAdapter(complainAdapter);
-						    complainAdapter.notifyDataSetChanged();
-						}else{
-							Toast.makeText(getApplicationContext(), "Complain not available", Toast.LENGTH_SHORT).show();
-						}
-						
-						
-						
-					}*/
 				}
 			});
-	             
-			
+
 			filterDialog.show();
-			
 			break;
 		}
 	}
@@ -355,7 +220,35 @@ public class TicketViewScreen extends Activity implements OnClickListener, OnIte
 	
 	
 	private class ViewComplainTask extends AsyncTask<String, Void, String> {
-		@Override
+        private List<String> statusFilter;
+        private int start=0;
+        private int length=10;
+
+        public List<String> getStatusFilter() {
+            return statusFilter;
+        }
+
+        public void setStatusFilter(List<String> statusFilter) {
+            this.statusFilter = statusFilter;
+        }
+
+        public int getStart() {
+            return start;
+        }
+
+        public void setStart(int start) {
+            this.start = start;
+        }
+
+        public int getLength() {
+            return length;
+        }
+
+        public void setLength(int length) {
+            this.length = length;
+        }
+
+        @Override
 		protected void onPreExecute() {
 			super.onPreExecute();
 			pd.show();
@@ -366,11 +259,24 @@ public class TicketViewScreen extends Activity implements OnClickListener, OnIte
 			String response = "";
 
 			try {
-				/*System.out.println("EmployeeCode:"+params[0]);
-				System.out.println("EmployeeToken:"+params[1]);*/
+				/*Log.d(TAG,"EmployeeCode:"+params[0]);
+				Log.d(TAG,"EmployeeToken:"+params[1]);*/
 							
 				//response = API.GetSites(params[0], params[1]);
-				response = API.ViewComplaintsRest(myPrefs.getString("UserName", ""),myPrefs.getString("Password", ""));
+
+                Map<String,Object> requestParams = new HashMap<String, Object>();
+                requestParams.put("j_username", myPrefs.getString("UserName", ""));
+                requestParams.put("j_password", myPrefs.getString("Password", ""));
+                if(statusFilter!=null && !statusFilter.isEmpty()){
+                    requestParams.put("statusFilter", statusFilter);
+                }
+                if(start>0){
+                    requestParams.put("start", String.valueOf(start));
+                }
+                if(length>0){
+                    requestParams.put("length", String.valueOf(length));
+                }
+				response = API.fetchTickets(requestParams);
 
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -382,7 +288,7 @@ public class TicketViewScreen extends Activity implements OnClickListener, OnIte
 		@Override
 		protected void onPostExecute(String result) {
 			pd.dismiss();
-			System.out.println("The Message Is: " + result);
+			Log.d(TAG,"The Message Is: " + result);
 			
 			if (!(result.equals("No Internet")) || !(result.equals(""))) {
 
@@ -392,24 +298,25 @@ public class TicketViewScreen extends Activity implements OnClickListener, OnIte
 						JSONObject obj = new JSONObject(result);
 						JSONObject dataObject = new JSONObject(obj.getString("data"));
 						JSONArray array = new JSONArray(dataObject.getString("data"));
-						System.out.println("ARRAY:"+array.toString(2));
-						m_orders = new ArrayList<Complain>();
-						m_orders.clear();
+						Log.d(TAG,"ARRAY:"+array.toString(2));
+                        if(complainLV.getAdapter()==null) {
+                            m_orders = new ArrayList<Complain>();
+                            complainAdapter = new ComplainOrder(TicketViewScreen.this, R.layout.complain_row, m_orders);
+                            complainLV.setAdapter(complainAdapter);
+                        }
 						for(int i=0; i<array.length();i++){
 							JSONObject o = array.getJSONObject(i);
 							Complain s = new Complain(
 									o.getString("ticketId"), 
 									o.getString("ticketId"), 
 									o.getString("statusId"),
-									o.getString("siteName"),
-									o.getString("serviceTypeName"));
+									o.getJSONObject("site").getString("name"),
+                                    o.getJSONObject("serviceType").getString("name"));
 							m_orders.add(s);
+                            complainAdapter.notifyDataSetChanged();
 						}
 						
-						//m_orders = new ArrayList<Complain>();
-						complainAdapter = new ComplainOrder(TicketViewScreen.this, R.layout.complain_row, m_orders);
-					    complainLV.setAdapter(complainAdapter);
-					
+
 					}else{
 						Toast.makeText(getApplicationContext(), ""+new JSONObject(result).getString("messages").toString(), Toast.LENGTH_SHORT).show();
 					}
@@ -487,15 +394,32 @@ public class TicketViewScreen extends Activity implements OnClickListener, OnIte
             return v;
         }
     }
-    
+
+    public void populateFilterStatus(){
+        SparseBooleanArray checked = listView.getCheckedItemPositions();
+
+        Log.d(TAG,"CheckedItem:::"+listView.getCheckedItemCount());
+
+        if(checked.size()>0) {
+
+            status.clear();
+            for (int i = 0; i < listView.getAdapter().getCount(); i++) {
+                if (checked.get(i)) {
+                    Log.d(TAG, "ITEM: " + listView.getAdapter().getItem(i));
+                    status.add("" + listView.getAdapter().getItem(i).toString().toLowerCase());
+                }
+            }
+        }
+   }
+
 	@Override
 	public void onItemClick(AdapterView<?> arg0, View v, int position, long arg3) {
 		
 		Complain c = (Complain)arg0.getItemAtPosition(position);
 		
-		System.out.println("Name: "+c.getComplaintCategoryName());
-		System.out.println("Name: "+c.getComplaintID());
-		System.out.println("Name: "+c.getComplaintStatus());
+		Log.d(TAG,"Name: "+c.getComplaintCategoryName());
+		Log.d(TAG,"Name: "+c.getComplaintID());
+		Log.d(TAG,"Name: "+c.getComplaintStatus());
 		
 		Intent in = new Intent(this, UpdateTicketScreen.class);
 		in.putExtra("complain_id",c.getComplaintID() ); 
