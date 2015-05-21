@@ -52,7 +52,7 @@ public class UpdateTicketScreen extends Activity implements OnClickListener, Loc
 	private EditText commentET;
 	private Button submitBtn;
 	private Button closeStatusBtn;
-	
+
 	private String finalSiteID = "";
 	private String finalCategoryID = "";
 	private String finalSubCategoryID = "";
@@ -83,7 +83,8 @@ public class UpdateTicketScreen extends Activity implements OnClickListener, Loc
 	private TextView employeeName;
 	private EditText filenameET;
 	private TextView previousComment;
-	
+	private TextView poRequests;
+
 	private final int REQUEST_CAMERA = 0;
 	private final int SELECT_FILE = 1;
 	
@@ -124,7 +125,8 @@ public class UpdateTicketScreen extends Activity implements OnClickListener, Loc
 		employeeName = (TextView)findViewById(R.id.employeeName);
 		filenameET = (EditText)findViewById(R.id.filename);
 		previousComment = (TextView) findViewById(R.id.previousComment);
-		
+		poRequests = (TextView) findViewById(R.id.poRequests);
+
 				
 		// lictener
 		backBtn.setOnClickListener(this);
@@ -132,7 +134,8 @@ public class UpdateTicketScreen extends Activity implements OnClickListener, Loc
 		closeStatusBtn.setOnClickListener(this);
 		filenameET.setOnClickListener(this);
 		previousComment.setOnClickListener(this);
-		
+		poRequests.setOnClickListener(this);
+
 		// on Touch Listenre
 		/*sitesSpnr.setOnTouchListener(sitesSpinnerOnTouch);
 		categorySpnr.setOnTouchListener(categorySpinnerOnTouch);
@@ -186,7 +189,13 @@ public class UpdateTicketScreen extends Activity implements OnClickListener, Loc
 			in.putExtra("comment_id",getIntent().getExtras().getString("complain_id")); 
 			startActivity(in);
 			break;
-		
+
+		case R.id.poRequests:
+			Intent poIntent = new Intent(this, PORequestViewScreen.class);
+			poIntent.putExtra("ticketId",getIntent().getExtras().getString("complain_id"));
+			startActivity(poIntent);
+			break;
+
 		case R.id.filename:
 			if(Filename.toString().trim().equals("") || Filename.toString().trim().equals(null)){
 				//selectImage();

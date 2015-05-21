@@ -7,7 +7,16 @@ public class Complain {
 	private String complaintStatus= "";
 	private String siteCode = "";
 	private String complaintCategoryName = "";
-	
+
+	public String getSource() {
+		return source;
+	}
+
+	public void setSource(String source) {
+		this.source = source;
+	}
+
+	private String source="";
 	
 	public Complain(String complaintID, String complaintCode, String complaintStatus, String siteCode, String complaintCategoryName){
 		this.complaintID = complaintID;
@@ -26,5 +35,6 @@ public class Complain {
 	public String getSiteCode(){return siteCode;}
 	
 	public String getComplaintCategoryName(){return complaintCategoryName;}
-	
+
+
 }

@@ -28,11 +28,11 @@ android {
 
 dependencies {
     compile 'com.android.support:support-v4:18.0.0'
-    compile 'com.actionbarsherlock:actionbarsherlock:4.4.0@aar'
-    compile 'com.android.support:support-v4:18.0.0'
     compile files('libs/bugsense-3.6.jar')
     compile files('libs/httpclient-android-4.3.5.jar')
     compile files('libs/httpmime-4.3.1.jar')
     compile files('libs/ksoap2-android-assembly-2.5.2-jar-with-dependencies.jar')
     compile files('libs/signpost-core-1.2.1.1.jar')
+    compile 'com.android.support:support-v4:22.0.0'
+    compile 'com.actionbarsherlock:actionbarsherlock:4.4.0@aar'
 }

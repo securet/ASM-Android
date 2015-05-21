@@ -18,6 +18,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -312,6 +313,7 @@ public class TicketViewScreen extends Activity implements OnClickListener, OnIte
 									o.getString("statusId"),
 									o.getJSONObject("site").getString("name"),
                                     o.getJSONObject("serviceType").getString("name"));
+							s.setSource(o.getString("source"));
 							m_orders.add(s);
                             complainAdapter.notifyDataSetChanged();
 						}
@@ -351,10 +353,12 @@ public class TicketViewScreen extends Activity implements OnClickListener, OnIte
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
         	View v = convertView;
+
             if (v == null) {
             	LayoutInflater vi = (LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE);
                 v = vi.inflate(R.layout.complain_row, null);
             }
+			v.setBackgroundColor(Color.WHITE);
             Complain o = items.get(position);
             if (o != null) {
             	TextView complainCode = (TextView) v.findViewById(R.id.complainCodeTV);
@@ -362,7 +366,20 @@ public class TicketViewScreen extends Activity implements OnClickListener, OnIte
                 ImageView statusImg = (ImageView)v.findViewById(R.id.statusImg);
                 TextView siteName = (TextView) v.findViewById(R.id.siteName);
                 TextView complaintCategoryName = (TextView) v.findViewById(R.id.complaintCategoryNameTV);
-                
+
+				if(o.getSource()!=null && o.getSource().equals("HP_TOOL")){
+					v.setBackgroundColor(Color.parseColor("#324DA1"));
+					complainCode.setTextColor(Color.WHITE);
+					status.setTextColor(Color.WHITE);
+					siteName.setTextColor(Color.WHITE);
+					complaintCategoryName.setTextColor(Color.WHITE);
+				}else {
+					v.getBackground().clearColorFilter();
+					complainCode.setTextColor(Color.BLACK);
+					status.setTextColor(Color.BLACK);
+					siteName.setTextColor(Color.BLACK);
+					complaintCategoryName.setTextColor(Color.BLACK);
+				}
                 if (complainCode != null) {
                 	complainCode.setText(o.getComplaintCode());  
                 }
@@ -398,7 +415,7 @@ public class TicketViewScreen extends Activity implements OnClickListener, OnIte
     public void populateFilterStatus(){
         SparseBooleanArray checked = listView.getCheckedItemPositions();
 
-        Log.d(TAG,"CheckedItem:::"+listView.getCheckedItemCount());
+        //Log.d(TAG,"CheckedItem:::"+listView.getCheckedItemCount());
 
         if(checked.size()>0) {
 

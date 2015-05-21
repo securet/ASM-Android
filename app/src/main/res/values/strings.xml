@@ -19,7 +19,8 @@
 	<string name="accept_close">Accept</string>
 	
     <string name="previous_comment"><u>Previous Comments</u></string>
-    
+    <string name="po_requests"><u>View PO Requests</u></string>
+
     <string-array name="planets_array">
         <item>Mercury</item>
         <item>Venus</item>
@@ -45,5 +46,12 @@
     <string name="vendorEmail">Vendor Email</string>
     <string name="vendorMobile">Vendor Mobile</string>
     <string name="comments">Comments</string>
+
+    <string name="title_activity_porequest_view_screen">PORequestViewScreen</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
+    <string name="update_po_request">Update PO Request</string>
+    <string name="authorize">Authorize</string>
+    <string name="reject">Reject</string>
 
 </resources>

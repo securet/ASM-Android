@@ -9,6 +9,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.util.DisplayMetrics;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 @SuppressLint("all")
@@ -97,7 +98,7 @@ public class Utils {
             curVersion = packageManager.getPackageInfo(applicationContext.getPackageName(), PackageManager.GET_UNINSTALLED_PACKAGES).versionName;
         } catch (PackageManager.NameNotFoundException e) {
         }
-        appVersionView.setText("v"+curVersion);
+        appVersionView.setText("v" + curVersion);
     }
 
     public static String getAppVersion(Activity activity) {
@@ -111,4 +112,17 @@ public class Utils {
         return curVersion;
     }
 
+    public static void setPORequestStatusImageIcon(String status, ImageView statusImg) {
+        if(statusImg != null){
+            if (status.equals("Initiated")){
+                statusImg.setImageResource(R.drawable.resolved_icon);
+            }else if(status.equals("Authorized")){
+                statusImg.setImageResource(R.drawable.inprogress_icon);
+            }else if(status.equals("Rejected")){
+                statusImg.setImageResource(R.drawable.open_icon);
+            }else if(status.equals("Completed")){
+                statusImg.setImageResource(R.drawable.closed_icon);
+            }
+        }
+    }
 }

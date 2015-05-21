@@ -656,7 +656,7 @@ public class SubmitTicketScreen extends Activity implements OnClickListener, Loc
 					
 				} catch (Exception e) {
 					e.printStackTrace();
-					BugSenseHandler.sendException(e);
+					BugSenseHandler.sendExceptionMessage("result",result,e);
 					pd.dismiss();
 				}
 			} else {

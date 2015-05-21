@@ -34,7 +34,7 @@ public class API {
 	// ================================================
 	private static final String TAG = "ASM_API";
 
-    // For debugs all logs...
+	// For debugs all logs...
 	public static int LOGLEVEL = 1; // set -1 to stop debugging in the app
 	public static boolean WARN = LOGLEVEL > 1; // set LOGLEVEL = 2
 	public static boolean DEBUG = LOGLEVEL > 0; // set LOGLEVEL = 1
@@ -42,10 +42,10 @@ public class API {
 	public static String bugsenseAPI = "2dd5922c";
 	
 	
-//	public static String HOST = "http://192.168.0.61:8080/asm/";
-//    public static String HOST = "http://test.asm.securet.in/";
-    public static String HOST = "http://asm.securet.in/";
-    private static String REST = "rest/v1/";
+	//public static String HOST = "http://192.168.0.61:8080/asm/";
+    public static String HOST = "http://test.asm.securet.in/";
+    //public static String HOST = "http://asm.securet.in/";
+    private static String REST = "rest/";
 
 	private static String VALIDATE_USER = HOST+REST+"validateUser"; // done
 	private static String SERVICE_TYPES = HOST+REST+"serviceTypes"; // done
@@ -64,7 +64,11 @@ public class API {
 	
 	private static String GET_COMMENTS_FOR_COMPLAINT = HOST+REST+"ticket/history";
 
-    private static final String SEARCH_SITES_BY_KEYWORD = HOST+REST+"searchUserSites";;
+	private static final String PO_REQUESTS_FOR_TICKET = HOST+REST+"ticket/fetchPORequestsForTicket";
+	private static final String PO_REQUEST_FOR_REQUEST_ID = HOST+REST+"ticket/fetchPORequestForRequestId";
+	private static final String UPDATE_PO_REQUEST_STATUS = HOST+REST+"ticket/updatePORequestStatusForRequestId";
+
+	private static final String SEARCH_SITES_BY_KEYWORD = HOST+REST+"searchUserSites";;
     private static final String CHECK_APP_NOTIFICATIONS = HOST+REST+"appNotifications";;
 
 	
@@ -967,6 +971,18 @@ public class API {
     }
 
     public static String checkAppNotifications(Map<String,Object> params) {
-       return makeRequest(CHECK_APP_NOTIFICATIONS,params);
+       return makeRequest(CHECK_APP_NOTIFICATIONS, params);
     }
+
+	public static String getAllPORequestByTicketId(Map<String, Object> params) {
+		return makeRequest(PO_REQUESTS_FOR_TICKET,params);
+	}
+
+	public static String fetchPartOrderRequestForRequestId(Map<String, Object> params) {
+		return makeRequest(PO_REQUEST_FOR_REQUEST_ID,params);
+	}
+
+	public static String updatePORequestStatus(Map<String, Object> params) {
+		return makeRequest(UPDATE_PO_REQUEST_STATUS,params);
+	}
 }

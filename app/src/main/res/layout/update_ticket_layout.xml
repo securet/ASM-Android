@@ -82,7 +82,6 @@
     <ScrollView
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        
         android:layout_weight="1" >
 
         <LinearLayout
@@ -252,6 +251,20 @@
                     android:padding="5dp"
                     android:textColor="#348EEA"
                     android:textSize="13dp" />
+
+                <TextView
+                    android:id="@+id/poRequests"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="5dp"
+                    android:layout_marginLeft="20dp"
+                    android:layout_marginRight="20dp"
+                    android:gravity="top|left"
+                    android:text="@string/po_requests"
+                    android:padding="5dp"
+                    android:textColor="#348EEA"
+                    android:textSize="13dp" />
+
             </LinearLayout>
 
             <EditText
