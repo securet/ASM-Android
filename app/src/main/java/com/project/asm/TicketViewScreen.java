@@ -288,7 +288,7 @@ public class TicketViewScreen extends Activity implements OnClickListener, OnIte
 		@Override
 		protected void onPostExecute(String result) {
 			pd.dismiss();
-			Log.d(TAG,"The Message Is: " + result);
+			Log.d(TAG, "The Message Is: " + result);
 			
 			if (!(result.equals("No Internet")) || !(result.equals(""))) {
 
@@ -313,14 +313,10 @@ public class TicketViewScreen extends Activity implements OnClickListener, OnIte
 									o.getJSONObject("site").getString("name"),
                                     o.getJSONObject("serviceType").getString("name"));
 							m_orders.add(s);
-                            complainAdapter.notifyDataSetChanged();
 						}
-						
-
 					}else{
 						Toast.makeText(getApplicationContext(), ""+new JSONObject(result).getString("messages").toString(), Toast.LENGTH_SHORT).show();
 					}
-					        
 				     //getOrders();
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -333,8 +329,11 @@ public class TicketViewScreen extends Activity implements OnClickListener, OnIte
 						"Error in response. Please try again.",
 						Toast.LENGTH_SHORT).show();
 			}
+            if(complainAdapter!=null) {
+                complainAdapter.notifyDataSetChanged();
+            }
 		}
-	}
+    }
 	
 	private class ComplainOrder extends ArrayAdapter<Complain> {
         private ArrayList<Complain> items;
@@ -384,8 +383,8 @@ public class TicketViewScreen extends Activity implements OnClickListener, OnIte
                 		statusImg.setImageResource(R.drawable.open_icon);
                 	}else if(o.getComplaintStatus().toLowerCase().equals("work_in_progress")){
                 		statusImg.setImageResource(R.drawable.inprogress_icon);
-                	}else if(o.getComplaintStatus().toLowerCase().equals("resolved")){
-                		statusImg.setImageResource(R.drawable.resolved_icon);
+                	}else if(o.getComplaintStatus().toLowerCase().equals("resolved")) {
+                        statusImg.setImageResource(R.drawable.resolved_icon);
                 	}else{
                 		statusImg.setImageResource(R.drawable.closed_icon);
                 	}
